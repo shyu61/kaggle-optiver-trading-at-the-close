@@ -11,12 +11,10 @@ from src.processing import feature_engineering
 
 
 def load_models(cfg: DictConfig) -> Dict:
-    lgb_models = joblib.load(Path(cfg.dir.model) / "lgb_models.joblib")
-    cbt_models = joblib.load(Path(cfg.dir.model) / "cbt_models.joblib")
-    return {
-        "lgb": lgb_models,
-        "cbt": cbt_models,
-    }
+    all_models = {}
+    for kind in cfg.model.kinds:
+        all_models[kind] = joblib.load(Path(cfg.dir.model) / f"{kind}_models.joblib")
+    return all_models
 
 
 @hydra.main(config_path="conf", config_name="inference")
@@ -27,11 +25,13 @@ def main(cfg: DictConfig):
 
     counter = 0
     for test, revealed_targets, sample_prediction in iter_test:
-        feat = feature_engineering(test)
+        df = feature_engineering(test)
 
-        sample_prediction["target"] = np.mean(
-            [model.predict(feat) for model in models], 0  # TODO
-        )
+        preds = []
+        for kind in cfg.model.kinds:
+            preds.append(np.mean([model.predict(df) for model in models[kind]], 0))
+
+        sample_prediction["target"] = np.mean(preds, 0)
         env.predict(sample_prediction)
         counter += 1
 

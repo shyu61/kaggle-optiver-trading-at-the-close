@@ -1,0 +1,8 @@
+defaults:
+  - dir: local
+
+model:
+  kinds:
+    - lgb
+    - cbt
+    # - xgb
