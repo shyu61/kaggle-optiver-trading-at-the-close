@@ -1,0 +1,3 @@
+input: /kaggle/input/optiver-trading-at-the-close
+output: /kaggle/working
+model: /kaggle/input/otc-models/

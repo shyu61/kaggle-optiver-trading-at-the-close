@@ -1,0 +1,4 @@
+defaults:
+  - dir: local
+
+n_splits: 5
