@@ -29,7 +29,6 @@ def create_metadata(tmp_dir: Path, title: str):
 @click.option("--new", "-n", is_flag=True)
 @click.option("--exp_name", "-e", default="exp001")
 def main(new: bool, exp_name: str):
-    breakpoint()
     api = KaggleApi()
     api.authenticate()
 
@@ -37,7 +36,7 @@ def main(new: bool, exp_name: str):
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     copy_models(tmp_dir, exp_name)
-    create_metadata(tmp_dir, title="otc-models")
+    create_metadata(tmp_dir, title="OTC-models")
 
     if new:
         api.dataset_create_new(
