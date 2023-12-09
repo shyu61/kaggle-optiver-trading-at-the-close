@@ -1,5 +1,4 @@
 import json
-import os
 import shutil
 from pathlib import Path
 
@@ -16,10 +15,10 @@ def copy_models(tmp_dir: Path, exp_name: str):
         shutil.copy(model, tmp_dir)
 
 
-def create_metadata(tmp_dir: Path, title: str, user_name: str):
+def create_metadata(tmp_dir: Path, title: str):
     metadata = {
         "title": title,
-        "id": f"{user_name}/{title}",
+        "id": f"shyu61/{title}",
         "licenses": [{"name": "CC0-1.0"}],
     }
     with open(tmp_dir / "dataset-metadata.json", "w") as f:
@@ -38,7 +37,7 @@ def main(new: bool, exp_name: str):
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     copy_models(tmp_dir, exp_name)
-    create_metadata(tmp_dir, title="otc-models", user_name=os.getenv("KAGGLE_USERNAME"))
+    create_metadata(tmp_dir, title="otc-models")
 
     if new:
         api.dataset_create_new(
