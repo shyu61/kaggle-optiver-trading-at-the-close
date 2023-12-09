@@ -9,8 +9,10 @@ hydra:
     subdir: run${hydra.job.num}
 
 defaults:
+  - _self_
   - dir: local
 
+env: prod
 exp_name: exp001
 run_name: single
 model:

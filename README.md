@@ -13,7 +13,7 @@ rye sync
 python -m run.train dir=local exp_name=exp001
 
 # inference
-python -m run.inference dir=local exp_name=exp001
+python -m run.inference env=dev dir=local exp_name=exp001
 
 # upload model to kaggle
 python -m tools.upload_model --exp_name=exp001

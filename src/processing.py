@@ -4,7 +4,10 @@ import polars as pl
 
 
 def preprocessing(df: pl.DataFrame) -> pl.DataFrame:
-    return df.filter(pl.col("target").is_not_nan() & pl.col("target").is_not_null())
+    if "target" in df.columns:  # train
+        return df.filter(pl.col("target").is_not_nan() & pl.col("target").is_not_null())
+    else:  # inference
+        return df
 
 
 def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
