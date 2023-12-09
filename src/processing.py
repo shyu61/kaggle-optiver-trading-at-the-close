@@ -1,53 +1,48 @@
-import pandas as pd
+from itertools import combinations
+
+import polars as pl
 
 
-def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
-    feats = [
-        "seconds_in_bucket",
-        "imbalance_buy_sell_flag",
-        "imbalance_size",
-        "matched_size",
-        "bid_size",
-        "ask_size",
-        "reference_price",
-        "far_price",
-        "near_price",
-        "ask_price",
-        "bid_price",
-        "wap",
-        "imb_s1",
-        "imb_s2",
-    ]
+def preprocessing(df: pl.DataFrame) -> pl.DataFrame:
+    return df.filter(pl.col("target").is_not_nan() & pl.col("target").is_not_null())
 
-    df["imb_s1"] = df.eval("(bid_size-ask_size)/(bid_size+ask_size)")
-    df["imb_s2"] = df.eval(
-        "(imbalance_size-matched_size)/(matched_size+imbalance_size)"
+
+def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
+    drop_cols = ["stock_id", "date_id", "row_id", "time_id"]
+    df = df.with_columns(
+        (
+            (pl.col("bid_size") - pl.col("ask_size"))
+            / (pl.col("bid_size") + pl.col("ask_size"))
+        ).alias("imb_s1"),
+        (
+            (pl.col("imbalance_size") - pl.col("matched_size"))
+            / (pl.col("imbalance_size") + pl.col("matched_size"))
+        ).alias("imb_s2"),
     )
 
     prices = [
-        "reference_price",
-        "far_price",
-        "near_price",
-        "ask_price",
-        "bid_price",
         "wap",
+        "bid_price",
+        "ask_price",
+        "near_price",
+        "far_price",
+        "reference_price",
     ]
 
-    for i, a in enumerate(prices):
-        for j, b in enumerate(prices):
-            if i > j:
-                df[f"{a}_{b}_imb"] = df.eval(f"({a}-{b})/({a}+{b})")
-                feats.append(f"{a}_{b}_imb")
+    for comb in combinations(prices, 2):
+        df = df.with_columns(
+            (
+                (pl.col(comb[0]) - pl.col(comb[1]))
+                / (pl.col(comb[0]) + pl.col(comb[1]))
+            ).alias(f"{comb[0]}_{comb[1]}_imb")
+        )
 
-    for i, a in enumerate(prices):
-        for j, b in enumerate(prices):
-            for k, c in enumerate(prices):
-                if i > j and j > k:
-                    max_ = df[[a, b, c]].max(axis=1)
-                    min_ = df[[a, b, c]].min(axis=1)
-                    mid_ = df[[a, b, c]].sum(axis=1) - min_ - max_
+    for comb in combinations(prices, 3):
+        _max = df.select(comb).max_horizontal()
+        _min = df.select(comb).min_horizontal()
+        _mid = df.select(comb).sum_horizontal() - _max - _min
+        df = df.with_columns(
+            ((_max - _mid) / (_mid - _min)).alias(f"{comb[0]}_{comb[1]}_{comb[2]}_imb2")
+        )
 
-                    df[f"{a}_{b}_{c}_imb2"] = (max_ - mid_) / (mid_ - min_)
-                    feats.append(f"{a}_{b}_{c}_imb2")
-
-    return df[feats]
+    return df.drop(drop_cols)
