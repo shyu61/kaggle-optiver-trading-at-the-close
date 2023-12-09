@@ -1,4 +1,4 @@
-# optiver-trading-at-the-close
+# kaggle-optiver-trading-at-the-close
 
 ## Preparation
 - rye
