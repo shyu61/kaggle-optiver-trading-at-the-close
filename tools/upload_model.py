@@ -3,6 +3,7 @@ import os
 import shutil
 from pathlib import Path
 
+import click
 from dotenv import load_dotenv
 from kaggle import KaggleApi
 
@@ -25,7 +26,10 @@ def create_metadata(tmp_dir: Path, title: str, user_name: str):
         json.dump(metadata, f, indent=4)
 
 
-def main():
+@click.command()
+@click.option("--new", "-n", is_flag=True)
+def main(new: bool):
+    breakpoint()
     api = KaggleApi()
     api.authenticate()
 
@@ -35,12 +39,20 @@ def main():
     copy_models(tmp_dir)
     create_metadata(tmp_dir, title="otc-models", user_name=os.getenv("KAGGLE_USERNAME"))
 
-    api.dataset_create_version(
-        folder=tmp_dir,
-        version_notes="",
-        dir_mode="tar",
-        convert_to_csv=False,
-    )
+    if new:
+        api.dataset_create_new(
+            folder=tmp_dir,
+            dir_mode="tar",
+            convert_to_csv=False,
+            public=False,
+        )
+    else:
+        api.dataset_create_version(
+            folder=tmp_dir,
+            version_notes="",
+            dir_mode="tar",
+            convert_to_csv=False,
+        )
     shutil.rmtree(tmp_dir)
 
 
