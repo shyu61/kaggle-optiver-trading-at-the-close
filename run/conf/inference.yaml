@@ -1,8 +1,21 @@
+hydra:
+  job:
+    name: train
+    chdir: true
+  run:
+    dir: ${dir.output}/${hydra.job.name}/${exp_name}/${run_name}
+  sweep:
+    dir: ${dir.output}/${hydra.job.name}/${exp_name}
+    subdir: run${hydra.job.num}
+
 defaults:
   - dir: local
 
+exp_name: exp001
+run_name: single
 model:
   kinds:
     - lgb
     - cbt
     # - xgb
+  dir: ${dir.output}/train/${exp_name}/${run_name}

@@ -10,16 +10,16 @@
 rye sync
 
 # train
-python -m run.train --dir=local
+python -m run.train dir=local exp_name=exp001
 
 # inference
-python -m run.inference --dir=local
+python -m run.inference dir=local exp_name=exp001
 
 # upload model to kaggle
-python -m tools.upload_model
+python -m tools.upload_model --exp_name=exp001
 ```
 - Kaggle
 ```bash
 # inference
-python -m run.inference --dir=kaggle
+python -m run.inference dir=kaggle model.dir=/kaggle/input/otc-models
 ```

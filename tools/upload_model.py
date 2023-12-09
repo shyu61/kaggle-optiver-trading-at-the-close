@@ -8,11 +8,11 @@ from dotenv import load_dotenv
 from kaggle import KaggleApi
 
 load_dotenv()
-MODEL_DIR = Path(__file__).parent.parent / "data" / "model"
+MODEL_DIR = Path(__file__).parent.parent / "data" / "output" / "train"
 
 
-def copy_models(tmp_dir: Path):
-    for model in MODEL_DIR.rglob("*.joblib"):
+def copy_models(tmp_dir: Path, exp_name: str):
+    for model in (MODEL_DIR / exp_name / "single").rglob("*.joblib"):
         shutil.copy(model, tmp_dir)
 
 
@@ -28,7 +28,8 @@ def create_metadata(tmp_dir: Path, title: str, user_name: str):
 
 @click.command()
 @click.option("--new", "-n", is_flag=True)
-def main(new: bool):
+@click.option("--exp_name", "-e", default="exp001")
+def main(new: bool, exp_name: str):
     breakpoint()
     api = KaggleApi()
     api.authenticate()
@@ -36,7 +37,7 @@ def main(new: bool):
     tmp_dir = Path("./tmp/")
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
-    copy_models(tmp_dir)
+    copy_models(tmp_dir, exp_name)
     create_metadata(tmp_dir, title="otc-models", user_name=os.getenv("KAGGLE_USERNAME"))
 
     if new:

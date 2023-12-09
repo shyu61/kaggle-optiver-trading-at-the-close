@@ -13,7 +13,9 @@ from src.processing import feature_engineering
 def load_models(cfg: DictConfig) -> Dict:
     all_models = {}
     for kind in cfg.model.kinds:
-        all_models[kind] = joblib.load(Path(cfg.dir.model) / f"{kind}_models.joblib")
+        all_models[kind] = joblib.load(
+            Path(cfg.model.dir) / f"{kind}_models.joblib"
+        )
     return all_models
 
 
