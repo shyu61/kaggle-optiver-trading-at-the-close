@@ -11,6 +11,8 @@ rye sync
 
 # train
 python -m run.train dir=local exp_name=exp001
+# simple train
+python -m run.train dir=local exp_name=exp002 is_lgb_only=true
 
 # inference
 python -m run.inference env=dev dir=local exp_name=exp001

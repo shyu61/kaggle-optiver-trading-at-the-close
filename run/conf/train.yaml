@@ -12,5 +12,6 @@ defaults:
   - _self_
   - dir: local
 
+is_lgb_only: false
 exp_name: exp001
 n_splits: 5
