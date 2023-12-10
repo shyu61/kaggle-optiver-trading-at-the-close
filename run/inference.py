@@ -37,9 +37,7 @@ def main(cfg: DictConfig):
 
         preds = []
         for kind in cfg.model.kinds:
-            preds.append(
-                np.mean([model.predict(df.to_pandas()) for model in models[kind]], 0)
-            )
+            preds.append(models[kind].predict(df.to_pandas()))
         sample_prediction["target"] = np.mean(preds, 0)
         env.predict(sample_prediction)
 

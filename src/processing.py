@@ -10,8 +10,13 @@ def preprocessing(df: pl.DataFrame) -> pl.DataFrame:
         return df
 
 
-def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
-    drop_cols = ["stock_id", "date_id", "row_id", "time_id"]
+def feature_engineering(
+    df: pl.DataFrame, maintain_stock_id: bool = False
+) -> pl.DataFrame:
+    drop_cols = ["date_id", "row_id", "time_id"]
+    if not maintain_stock_id:
+        drop_cols.append("stock_id")
+
     df = df.with_columns(
         (
             (pl.col("bid_size") - pl.col("ask_size"))
