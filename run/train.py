@@ -132,27 +132,7 @@ def init_model(model_type: str, params: Dict = {}) -> Any:
 
 @hydra.main(config_path="conf", config_name="train", version_base=None)
 def main(cfg: DictConfig):
-    df = pl.read_csv(
-        Path(cfg.dir.input) / "train.csv",
-        dtypes={
-            "stock_id": pl.UInt16,
-            "date_id": pl.UInt16,
-            "seconds_in_bucket": pl.UInt16,
-            "imbalance_size": pl.Float32,
-            "imbalance_buy_sell_flag": pl.Int8,
-            "reference_price": pl.Float32,
-            "matched_size": pl.Float32,
-            "far_price": pl.Float32,
-            "near_price": pl.Float32,
-            "bid_price": pl.Float32,
-            "bid_size": pl.Float32,
-            "ask_price": pl.Float32,
-            "ask_size": pl.Float32,
-            "wap": pl.Float32,
-            "target": pl.Float32,
-            "time_id": pl.UInt32,
-        },
-    )
+    df = pl.read_csv(Path(cfg.dir.input) / "train.csv")
     df = preprocessing(df)
     df = feature_engineering(df, maintain_stock_id=True)
 

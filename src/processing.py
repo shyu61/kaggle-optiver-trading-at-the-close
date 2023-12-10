@@ -2,12 +2,36 @@ from itertools import combinations
 
 import polars as pl
 
+CAST_DTYPES = {
+    "stock_id": pl.UInt16,
+    "date_id": pl.UInt16,
+    "seconds_in_bucket": pl.UInt16,
+    "imbalance_size": pl.Float32,
+    "imbalance_buy_sell_flag": pl.Int8,
+    "reference_price": pl.Float32,
+    "matched_size": pl.Float32,
+    "far_price": pl.Float32,
+    "near_price": pl.Float32,
+    "bid_price": pl.Float32,
+    "bid_size": pl.Float32,
+    "ask_price": pl.Float32,
+    "ask_size": pl.Float32,
+    "wap": pl.Float32,
+    "target": pl.Float32,
+    "time_id": pl.UInt32,
+}
+
 
 def preprocessing(df: pl.DataFrame) -> pl.DataFrame:
+    cast_dtypes = CAST_DTYPES.copy()
     if "target" in df.columns:  # train
-        return df.filter(pl.col("target").is_not_nan() & pl.col("target").is_not_null())
+        df = df.filter(pl.col("target").is_not_nan() & pl.col("target").is_not_null())
     else:  # inference
-        return df
+        cast_dtypes.pop("target")
+
+    return df.with_columns(
+        [pl.col(col).cast(dtype) for col, dtype in cast_dtypes.items()]
+    )
 
 
 # fmt: off

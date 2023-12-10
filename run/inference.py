@@ -17,6 +17,19 @@ def load_models(cfg: DictConfig) -> Dict:
     return all_models
 
 
+def add_time_id(df: pl.DataFrame) -> pl.DataFrame:
+    tmp = (
+        df.group_by("date_id", "seconds_in_bucket")
+        .agg(pl.lit(0).alias("dummy"))
+        .sort("date_id", "seconds_in_bucket")
+    )
+    tmp = tmp.with_columns(
+        pl.arange(0, len(tmp)).cast(pl.UInt32).alias("time_id")
+    ).drop("dummy")
+
+    return df.join(tmp, on=["date_id", "seconds_in_bucket"])
+
+
 @hydra.main(config_path="conf", config_name="inference", version_base=None)
 def main(cfg: DictConfig):
     if cfg.env == "dev":
@@ -30,6 +43,7 @@ def main(cfg: DictConfig):
 
     for test, revealed_targets, sample_prediction in iter_test:
         df = pl.DataFrame(test)
+        df = add_time_id(df)
         if "currently_scored" in df.columns:
             df = df.drop("currently_scored")
         df = preprocessing(df)
