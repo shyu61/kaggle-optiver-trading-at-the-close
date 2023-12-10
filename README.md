@@ -12,7 +12,7 @@ rye sync
 # train
 python -m run.train dir=local exp_name=exp001
 # simple train
-python -m run.train dir=local exp_name=exp002 is_lgb_only=true save_model=false
+python -m run.train dir=local exp_name=exp002 is_lgb_only=true save_model=false n_splits=3
 
 # inference
 python -m run.inference env=dev dir=local exp_name=exp001

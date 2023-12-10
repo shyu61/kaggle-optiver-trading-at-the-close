@@ -1,16 +1,14 @@
 import logging
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 import catboost as cbt
 import hydra
 import joblib
 import lightgbm as lgb
 import numpy as np
-import pandas as pd
 import polars as pl
-
-# import xgboost as xgb
+import xgboost as xgb
 from omegaconf import DictConfig
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import GroupKFold
@@ -23,12 +21,12 @@ log = logging.getLogger(__name__)
 
 def train_cv_for_ensemble(
     cfg: DictConfig,
-    X: pd.DataFrame,
-    y: pd.DataFrame,
-    model_dict: Dict[str, Any],
+    X: pl.DataFrame,
+    y: pl.DataFrame,
+    model_names: List[str],
 ) -> Tuple[Dict[str, Any]]:
     trained_models, best_iters, scores = {}, {}, []
-    for model_name in model_dict.keys():
+    for model_name in model_names:
         trained_models[model_name] = []
         best_iters[model_name] = []
 
@@ -43,7 +41,8 @@ def train_cv_for_ensemble(
         y_train, y_valid = y[train_idx].to_pandas(), y[valid_idx].to_pandas()
 
         preds_dict = {}
-        for model_name, model in model_dict.items():
+        for model_name in model_names:
+            model = init_model(model_name)
             if model_name == "lgb":
                 model.fit(
                     X_train,
@@ -84,25 +83,51 @@ def train_cv_for_ensemble(
 
 
 def train_whole_dataset(
-    X: pd.DataFrame,
-    y: pd.DataFrame,
-    model_dict: Dict[str, Any],
+    X: pl.DataFrame,
+    y: pl.DataFrame,
+    model_names: List[str],
     best_iters: Dict[str, Any],
 ) -> Dict[str, Any]:
     trained_models = {}
-    for model_name in model_dict.keys():
-        trained_models[model_name] = []
+    X_train, y_train = X.drop("stock_id").to_pandas(), y.to_pandas()
 
-    for model_name, model in model_dict.items():
+    for model_name in tqdm(model_names, total=len(model_names)):
+        model = init_model(model_name, {"n_estimators": best_iters[model_name]})
         if model_name == "lgb":
-            model.n_estimators = best_iters[model_name]
-            model.fit(X, y)
+            model.fit(X_train, y_train)
         else:
-            model.iterations = best_iters[model_name]
-            model.fit(X, y, verbose=False)
-        trained_models[model_name].append(model)
+            model.fit(X_train, y_train, verbose=False)
+        trained_models[model_name] = model
 
     return trained_models
+
+
+def init_model(model_type: str, params: Dict) -> Any:
+    if model_type == "lgb":
+        return lgb.LGBMRegressor(
+            **{
+                "objective": "regression_l1",
+                "n_estimators": 500,
+                "verbosity": -1,
+                "random_state": 42,
+                **params,
+            }
+        )
+    elif model_type == "cbt":
+        return cbt.CatBoostRegressor(
+            **{"objective": "MAE", "n_estimators": 3000, "random_seed": 42, **params}
+        )
+    elif model_type == "xgb":
+        return xgb.XGBRegressor(
+            **{
+                "tree_method": "hist",
+                "objective": "reg:absoluteerror",
+                "n_estimators": 500,
+                **params,
+            }
+        )
+    else:
+        raise ValueError(f"model_type {model_type} is not supported.")
 
 
 @hydra.main(config_path="conf", config_name="train", version_base=None)
@@ -133,31 +158,16 @@ def main(cfg: DictConfig):
 
     X, y = df.drop("target"), df["target"]
 
-    model_dict = {}
-    if cfg.is_lgb_only:
-        model_dict = {
-            "lgb": lgb.LGBMRegressor(
-                objective="regression_l1",
-                n_estimators=500,
-                verbosity=-1,
-                random_state=42,
-            ),
-        }
-    else:
-        model_dict = {
-            "lgb": lgb.LGBMRegressor(
-                objective="regression_l1", n_estimators=500, verbosity=-1, n_jobs=-1
-            ),
-            "cbt": cbt.CatBoostRegressor(objective="MAE", iterations=3000),
-            # "xgb": xgb.XGBRegressor(
-            #     tree_method="hist", objective="reg:absoluteerror", n_estimators=500
-            # ),
-        }
+    model_names = ["lgb"]
+    if not cfg.is_lgb_only:
+        model_names.extend(["cbt"])
+        # model_names.extend(["cbt", "xgb"])
 
     log.info("Training models...")
-    _, best_iters = train_cv_for_ensemble(cfg, X, y, model_dict)
+    _, best_iters = train_cv_for_ensemble(cfg, X, y, model_names)
+    # best_iters = {"lgb": 492, "cbt": 2645}
     if cfg.save_model:
-        trained_models = train_whole_dataset(X, y, model_dict, best_iters)
+        trained_models = train_whole_dataset(X, y, model_names, best_iters)
         for model_name, models in trained_models.items():
             joblib.dump(models, f"{model_name}_models.joblib")
 
