@@ -1,0 +1,15 @@
+- exp003: kaggle baseline
+  - kaggle score: 5.3712
+  - use GroupKFold, train whole dataset
+  - ensemble lightgbm and catboost
+- exp004: local baseline
+  - local score: 6.267192637284693
+  - `is_lgb_only=true save_model=false n_splits=3`
+- exp005:
+  - local score: 6.267199100620914
+  - add stock_weights
+  - `is_lgb_only=true save_model=false n_splits=3`
+- exp006:
+  - local score: 6.260044585477843
+  - add index wap, remove weight
+  - `is_lgb_only=true save_model=false n_splits=3`
