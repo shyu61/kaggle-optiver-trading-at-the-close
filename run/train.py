@@ -102,7 +102,7 @@ def train_whole_dataset(
     return trained_models
 
 
-def init_model(model_type: str, params: Dict) -> Any:
+def init_model(model_type: str, params: Dict = {}) -> Any:
     if model_type == "lgb":
         return lgb.LGBMRegressor(
             **{
