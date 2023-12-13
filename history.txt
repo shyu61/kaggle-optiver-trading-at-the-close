@@ -18,3 +18,8 @@
     - lgb_cv: 6.108056730211516
     - cbt_cv: 6.105300248278833
     - ensemble: 6.25559508251711
+  - kaggle score: 5.3706
+- exp008: local
+  - local score: 6.254016253696886, 6.253232813715236
+  - add rolling features about wap
+  - `is_lgb_only=true save_model=false n_splits=3`
