@@ -1,4 +1,5 @@
-import logging
+import sys
+from logging import DEBUG, StreamHandler, getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -16,7 +17,17 @@ from tqdm import tqdm
 
 from src.processing import feature_engineering, preprocessing
 
-log = logging.getLogger(__name__)
+
+def set_logger():
+    logger = getLogger(__name__)
+    handler = StreamHandler(sys.stdout)
+    handler.setLevel(DEBUG)
+    logger.addHandler(handler)
+    logger.setLevel(DEBUG)
+    return logger
+
+
+logger = set_logger()
 
 
 def train_cv_for_ensemble(
@@ -67,7 +78,7 @@ def train_cv_for_ensemble(
                 y_pred=preds_dict[model_name],
                 y_true=y_valid,
             )
-            log.info(f"{model_name} fold {i} score: {score}")
+            logger.info(f"{model_name} fold {i} score: {score}")
 
         scores.append(
             mean_absolute_error(
@@ -77,8 +88,8 @@ def train_cv_for_ensemble(
         )
 
     best_iters = {k: int(np.mean(v)) for k, v in best_iters.items()}
-    log.info(f"ensemble CV score: {np.mean(scores)}")
-    log.info(f"best iters: {best_iters}")
+    logger.info(f"ensemble CV score: {np.mean(scores)}")
+    logger.info(f"best iters: {best_iters}")
     return trained_models, best_iters
 
 
@@ -143,7 +154,7 @@ def main(cfg: DictConfig):
         model_names.extend(["cbt"])
         # model_names.extend(["cbt", "xgb"])
 
-    log.info("Training models...")
+    logger.info("Training models...")
     _, best_iters = train_cv_for_ensemble(cfg, X, y, model_names)
     # best_iters = {"lgb": 492, "cbt": 2645}
     if cfg.save_model:
