@@ -1,0 +1,13 @@
+exp_name,local_score,local_full_score,kaggle_score,memo
+exp003,,,5.3712,"use GroupKFold, train whole dataset"
+exp004,6.267192637284693,,,
+exp005,6.267199100620914,,,add stock_weights
+exp006,6.260044585477843,,,"add index wap, remove weight"
+exp007,,"- lgb_cv: 6.108056730211516
+- cbt_cv: 6.105300248278833
+- ensemble: 6.25559508251711",,
+exp008,6.243430636868214,,,add rolling features about wap
+exp009,6.2392027162437005,,,"add rolling features about [""imbalance_size"", ""matched_size"", ""bid_size"", ""ask_size""]"
+exp010,6.238353623104943,,,add prev_date_same_sec wap
+exp011,,,,
+,,,,
