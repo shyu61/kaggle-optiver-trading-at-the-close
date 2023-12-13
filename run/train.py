@@ -41,6 +41,7 @@ def train_cv_for_ensemble(
         trained_models[model_name] = []
         best_iters[model_name] = []
 
+    all_preds = np.zeros(len(X))
     gkf = GroupKFold(n_splits=cfg.n_splits)
     for i, (train_idx, valid_idx) in enumerate(
         tqdm(gkf.split(X, groups=X["stock_id"]), total=cfg.n_splits)
@@ -74,6 +75,7 @@ def train_cv_for_ensemble(
 
             trained_models[model_name].append(model)
             preds_dict[model_name] = model.predict(X_valid)
+            all_preds[valid_idx] = preds_dict[model_name]
             score = mean_absolute_error(
                 y_pred=preds_dict[model_name],
                 y_true=y_valid,
@@ -90,7 +92,7 @@ def train_cv_for_ensemble(
     best_iters = {k: int(np.mean(v)) for k, v in best_iters.items()}
     logger.info(f"ensemble CV score: {np.mean(scores)}")
     logger.info(f"best iters: {best_iters}")
-    return trained_models, best_iters
+    return trained_models, best_iters, all_preds
 
 
 def train_whole_dataset(
@@ -155,7 +157,7 @@ def main(cfg: DictConfig):
         # model_names.extend(["cbt", "xgb"])
 
     logger.info("Training models...")
-    _, best_iters = train_cv_for_ensemble(cfg, X, y, model_names)
+    _, best_iters, _ = train_cv_for_ensemble(cfg, X, y, model_names)
     # best_iters = {"lgb": 492, "cbt": 2645}
     if cfg.save_model:
         trained_models = train_whole_dataset(X, y, model_names, best_iters)
