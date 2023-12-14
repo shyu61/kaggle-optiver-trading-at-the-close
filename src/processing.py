@@ -119,33 +119,6 @@ def __add_rolling(df: pl.DataFrame) -> pl.DataFrame:
     return df
 
 
-def __add_prev_date(df: pl.DataFrame) -> pl.DataFrame:
-    # 前日の同時刻の情報を加える
-    df = (
-        df.group_by("stock_id", "seconds_in_bucket")
-        .map_groups(
-            lambda group: group.sort("date_id").with_columns(
-                pl.col("wap").shift(1).alias("prev_date_same_sec_wap"),
-            )
-        )
-        .sort("stock_id", "seconds_in_bucket")
-    )
-    # 前日の1seconds_in_bucket先のレコードを特徴量として加える
-    _df = df.clone().select(
-        "stock_id", "date_id", "seconds_in_bucket", "prev_date_same_sec_wap"
-    )
-    _df = _df.with_columns(
-        pl.when(pl.col("seconds_in_bucket") > 0)
-        .then(pl.col("seconds_in_bucket") - 10)
-        .otherwise(None)
-        .cast(pl.UInt16)
-        .alias("seconds_in_bucket")
-    ).drop_nulls(subset="seconds_in_bucket")
-    _df = _df.rename({"prev_date_same_sec_wap": "prev_date_1_follow_sec_wap"})
-    df = df.join(_df, on=["stock_id", "date_id", "seconds_in_bucket"], how="left")
-    return df
-
-
 # def __add_talib_feats(df: pl.DataFrame) -> pl.DataFrame:
 #     # def add_macd(groups: pl.DataFrame) -> pl.DataFrame:
 #     #     macd, macdsignal, macdhist = talib.MACD(
@@ -169,8 +142,7 @@ def __add_prev_date(df: pl.DataFrame) -> pl.DataFrame:
 
 def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
     df = __add_index_wap(df)
-    # df = __add_rolling(df)
-    # df = __add_prev_date(df)
+    df = __add_rolling(df)
     # df = __add_talib_feats(df)
 
     df = df.with_columns(
