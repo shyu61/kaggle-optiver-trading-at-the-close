@@ -12,7 +12,6 @@ import polars as pl
 import xgboost as xgb
 from omegaconf import DictConfig
 from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import GroupKFold
 from tqdm import tqdm
 
 from src.processing import feature_engineering, preprocessing
@@ -30,10 +29,9 @@ def set_logger():
 logger = set_logger()
 
 
-def train_cv_for_ensemble(
+def train_purged_cv_for_ensemble(
     cfg: DictConfig,
-    X: pl.DataFrame,
-    y: pl.DataFrame,
+    df: pl.DataFrame,
     model_names: List[str],
 ) -> Tuple[Dict[str, Any]]:
     trained_models, best_iters, scores = {}, {}, []
@@ -41,16 +39,25 @@ def train_cv_for_ensemble(
         trained_models[model_name] = []
         best_iters[model_name] = []
 
-    all_preds = np.zeros(len(X))
-    gkf = GroupKFold(n_splits=cfg.n_splits)
-    for i, (train_idx, valid_idx) in enumerate(
-        tqdm(gkf.split(X, groups=X["stock_id"]), total=cfg.n_splits)
-    ):
-        X_train, X_valid = (
-            X[train_idx].drop("stock_id").to_pandas(),
-            X[valid_idx].drop("stock_id").to_pandas(),
+    fold_size = df["date_id"].n_unique() // cfg.n_splits
+    for i in tqdm(range(cfg.n_splits), total=cfg.n_splits):
+        start, end = i * fold_size, (i + 1) * fold_size
+        train_expr = (
+            (~pl.col("date_id").is_between(start, end))
+            & (~pl.col("date_id").is_between(start - 2, start + 2))
+            & (~pl.col("date_id").is_between(end - 2, end + 2))
         )
-        y_train, y_valid = y[train_idx].to_pandas(), y[valid_idx].to_pandas()
+        valid_expr = (
+            pl.col("date_id").is_between(start, end)
+            & (~pl.col("date_id").is_between(start - 2, start + 2))
+            & (~pl.col("date_id").is_between(end - 2, end + 2))
+        )
+        train, valid = df.filter(train_expr), df.filter(valid_expr)
+        X_train, X_valid = (
+            train.drop("target").to_pandas(),
+            valid.drop("target").to_pandas(),
+        )
+        y_train, y_valid = train["target"].to_pandas(), valid["target"].to_pandas()
 
         preds_dict = {}
         for model_name in model_names:
@@ -75,7 +82,6 @@ def train_cv_for_ensemble(
 
             trained_models[model_name].append(model)
             preds_dict[model_name] = model.predict(X_valid)
-            all_preds[valid_idx] = preds_dict[model_name]
             score = mean_absolute_error(
                 y_pred=preds_dict[model_name],
                 y_true=y_valid,
@@ -92,17 +98,16 @@ def train_cv_for_ensemble(
     best_iters = {k: int(np.mean(v)) for k, v in best_iters.items()}
     logger.info(f"ensemble CV score: {np.mean(scores)}")
     logger.info(f"best iters: {best_iters}")
-    return trained_models, best_iters, all_preds
+    return trained_models, best_iters
 
 
 def train_whole_dataset(
-    X: pl.DataFrame,
-    y: pl.DataFrame,
+    df: pl.DataFrame,
     model_names: List[str],
     best_iters: Dict[str, Any],
 ) -> Dict[str, Any]:
     trained_models = {}
-    X_train, y_train = X.drop("stock_id").to_pandas(), y.to_pandas()
+    X_train, y_train = df.drop("target").to_pandas(), df["target"].to_pandas()
 
     for model_name in tqdm(model_names, total=len(model_names)):
         model = init_model(model_name, {"n_estimators": best_iters[model_name]})
@@ -147,9 +152,7 @@ def init_model(model_type: str, params: Dict = {}) -> Any:
 def main(cfg: DictConfig):
     df = pl.read_csv(Path(cfg.dir.input) / "train.csv")
     df = preprocessing(df)
-    df = feature_engineering(df, maintain_stock_id=True)
-
-    X, y = df.drop("target"), df["target"]
+    df = feature_engineering(df)
 
     model_names = ["lgb"]
     if not cfg.is_lgb_only:
@@ -157,10 +160,9 @@ def main(cfg: DictConfig):
         # model_names.extend(["cbt", "xgb"])
 
     logger.info("Training models...")
-    _, best_iters, _ = train_cv_for_ensemble(cfg, X, y, model_names)
-    # best_iters = {"lgb": 492, "cbt": 2645}
+    _, best_iters = train_purged_cv_for_ensemble(cfg, df, model_names)
     if cfg.save_model:
-        trained_models = train_whole_dataset(X, y, model_names, best_iters)
+        trained_models = train_whole_dataset(df, model_names, best_iters)
         for model_name, models in trained_models.items():
             joblib.dump(models, f"{model_name}_models.joblib")
 
