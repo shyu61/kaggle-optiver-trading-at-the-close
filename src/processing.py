@@ -103,8 +103,18 @@ def __add_rolling(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("wap").shift(6).over("stock_id", "date_id").cast(pl.Float32).alias("wap_shift_6"),  # noqa
     )
     # closing auction中で、sizeがどう変化しているかの情報を追加する
-    size_cols = ["imbalance_size", "matched_size", "bid_size", "ask_size"]
-    for col in size_cols:
+    targets = [
+        "imbalance_size",
+        "matched_size",
+        "bid_size",
+        "ask_size",
+        "bid_price",
+        "ask_price",
+        "near_price",
+        "far_price",
+        "reference_price"
+    ]
+    for col in targets:
         df = df.with_columns(
             pl.col(col).rolling_mean(3).over("stock_id", "date_id").cast(pl.Float32).alias(f"{col}_30s_rolling_mean"),  # noqa
             pl.col(col).rolling_mean(6).over("stock_id", "date_id").cast(pl.Float32).alias(f"{col}_60s_rolling_mean"),  # noqa
@@ -116,6 +126,43 @@ def __add_rolling(df: pl.DataFrame) -> pl.DataFrame:
             pl.col(col).diff().rolling_mean(6).over("stock_id", "date_id").cast(pl.Float32).alias(f"{col}_diff_60s_rolling_mean"),  # noqa
         )
     # fmt: on
+    return df
+
+
+def __add_pair_imbalance(df: pl.DataFrame) -> pl.DataFrame:
+    prices = [
+        "wap",
+        "bid_price",
+        "ask_price",
+        "near_price",
+        "far_price",
+        "reference_price",
+    ]
+    for comb in combinations(prices, 2):
+        df = df.with_columns(
+            (
+                (pl.col(comb[0]) - pl.col(comb[1]))
+                / (pl.col(comb[0]) + pl.col(comb[1]))
+            ).alias(f"{comb[0]}_{comb[1]}_imb")
+        )
+
+
+def __add_triplet_imbalance(df: pl.DataFrame) -> pl.DataFrame:
+    prices = [
+        "wap",
+        "bid_price",
+        "ask_price",
+        "near_price",
+        "far_price",
+        "reference_price",
+    ]
+    for comb in combinations(prices, 3):
+        _max = df.select(comb).max_horizontal()
+        _min = df.select(comb).min_horizontal()
+        _mid = df.select(comb).sum_horizontal() - _max - _min
+        df = df.with_columns(
+            ((_max - _mid) / (_mid - _min)).alias(f"{comb[0]}_{comb[1]}_{comb[2]}_imb")
+        )
     return df
 
 
@@ -145,6 +192,10 @@ def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
     df = __add_rolling(df)
     # df = __add_talib_feats(df)
 
+    # imbalance features
+    df = __add_pair_imbalance(df)
+    df = __add_triplet_imbalance(df)
+
     df = df.with_columns(
         (
             (pl.col("bid_size") - pl.col("ask_size"))
@@ -155,30 +206,5 @@ def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
             / (pl.col("imbalance_size") + pl.col("matched_size"))
         ).alias("imb_s2"),
     )
-
-    prices = [
-        "wap",
-        "bid_price",
-        "ask_price",
-        "near_price",
-        "far_price",
-        "reference_price",
-    ]
-
-    for comb in combinations(prices, 2):
-        df = df.with_columns(
-            (
-                (pl.col(comb[0]) - pl.col(comb[1]))
-                / (pl.col(comb[0]) + pl.col(comb[1]))
-            ).alias(f"{comb[0]}_{comb[1]}_imb")
-        )
-
-    for comb in combinations(prices, 3):
-        _max = df.select(comb).max_horizontal()
-        _min = df.select(comb).min_horizontal()
-        _mid = df.select(comb).sum_horizontal() - _max - _min
-        df = df.with_columns(
-            ((_max - _mid) / (_mid - _min)).alias(f"{comb[0]}_{comb[1]}_{comb[2]}_imb2")
-        )
 
     return df.drop("stock_id", "row_id")
