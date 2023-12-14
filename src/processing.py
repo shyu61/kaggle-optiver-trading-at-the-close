@@ -2,6 +2,8 @@ from itertools import combinations
 
 import polars as pl
 
+# import talib
+
 CAST_DTYPES = {
     "stock_id": pl.UInt16,
     "date_id": pl.UInt16,
@@ -144,16 +146,32 @@ def __add_prev_date(df: pl.DataFrame) -> pl.DataFrame:
     return df
 
 
-def feature_engineering(
-    df: pl.DataFrame, maintain_stock_id: bool = False
-) -> pl.DataFrame:
-    drop_cols = ["date_id", "row_id"]
-    if not maintain_stock_id:
-        drop_cols.append("stock_id")
+# def __add_talib_feats(df: pl.DataFrame) -> pl.DataFrame:
+#     # def add_macd(groups: pl.DataFrame) -> pl.DataFrame:
+#     #     macd, macdsignal, macdhist = talib.MACD(
+#     #         groups["wap"], fastperiod=12, slowperiod=26, signalperiod=9
+#     #     )
+#     #     groups = groups.with_columns(
+#     #         macd.alias("macd"),
+#     #         macdsignal.alias("macdsignal"),
+#     #         macdhist.alias("macdhist"),
+#     #     )
+#     #     return groups
 
+#     # return df.group_by("stock_id", "date_id").map_groups(add_macd)
+
+#     return df.group_by("stock_id", "date_id").map_groups(
+#         lambda group: group.with_columns(
+#             talib.EMA(group["wap"], timeperiod=3).alias("wap_30s_ema")
+#         )
+#     )
+
+
+def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
     df = __add_index_wap(df)
-    df = __add_rolling(df)
-    df = __add_prev_date(df)
+    # df = __add_rolling(df)
+    # df = __add_prev_date(df)
+    # df = __add_talib_feats(df)
 
     df = df.with_columns(
         (
@@ -191,4 +209,4 @@ def feature_engineering(
             ((_max - _mid) / (_mid - _min)).alias(f"{comb[0]}_{comb[1]}_{comb[2]}_imb2")
         )
 
-    return df.drop(drop_cols)
+    return df.drop("stock_id", "row_id")
