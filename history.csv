@@ -5,9 +5,9 @@ exp005,6.267199100620914,,,add stock_weights
 exp006,6.260044585477843,,,"add index wap, remove weight"
 exp007,,"- lgb_cv: 6.108056730211516
 - cbt_cv: 6.105300248278833
-- ensemble: 6.25559508251711",,
+- ensemble: 6.25559508251711",5.3706,
 exp008,6.243430636868214,,,add rolling features about wap
 exp009,6.2392027162437005,,,"add rolling features about [""imbalance_size"", ""matched_size"", ""bid_size"", ""ask_size""]"
 exp010,6.238353623104943,,,add prev_date_same_sec_wap
 exp011,6.237339902551374,,,add prev_date_1_follow_sec_wap
-,,,,
+exp012,,6.2316225637446125,5.6348,this version is same with exp011
