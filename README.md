@@ -10,7 +10,7 @@
 rye sync
 
 # train
-python -m run.train dir=local exp_name=exp001
+python -m run.train dir=local exp_name=exp001 is_lgb_only=true
 # simple train
 python -m run.train dir=local exp_name=exp002 is_lgb_only=true save_model=false n_splits=3
 
