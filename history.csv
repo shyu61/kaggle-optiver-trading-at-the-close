@@ -20,9 +20,9 @@ exp018,,6.235347298912181,5.5971,use purgedCV and leaves are same with exp007/ex
 exp019,6.269068721476906,,,"add all, and remove prev_date_same_sec_wap"
 exp020,6.268103737876827,6.2229760057834875,5.4971,same exp015
 exp021,6.264694706636736,,,add rolling features about prices
-exp022,,,,
-exp023,,,,
-exp024,,,,
+exp022,6.263941091196153,,,add additional imbalance features
+exp023,6.261458941452388,,,add pressure features
+exp024,6.261221124338282,6.218152508557716,,add statistic aggregation features
 exp025,,,,
 exp026,,,,
 ,,,,

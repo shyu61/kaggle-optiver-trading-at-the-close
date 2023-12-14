@@ -73,6 +73,9 @@ def __add_index_wap(df: pl.DataFrame) -> pl.DataFrame:
         (pl.col("wap") * pl.col("weight")).sum().alias("index_wap")
     )
     df = df.join(index_wap_df, on="time_id").sort("stock_id", "time_id")
+    # df = df.with_columns(
+    #     (pl.col("wap") * pl.col("weight")).alias("weighted_wap"),
+    # )
     return df
 
 
@@ -125,7 +128,6 @@ def __add_rolling(df: pl.DataFrame) -> pl.DataFrame:
             pl.col(col).diff().rolling_mean(3).over("stock_id", "date_id").cast(pl.Float32).alias(f"{col}_diff_30s_rolling_mean"),  # noqa
             pl.col(col).diff().rolling_mean(6).over("stock_id", "date_id").cast(pl.Float32).alias(f"{col}_diff_60s_rolling_mean"),  # noqa
         )
-    # fmt: on
     return df
 
 
@@ -145,6 +147,7 @@ def __add_pair_imbalance(df: pl.DataFrame) -> pl.DataFrame:
                 / (pl.col(comb[0]) + pl.col(comb[1]))
             ).alias(f"{comb[0]}_{comb[1]}_imb")
         )
+    return df
 
 
 def __add_triplet_imbalance(df: pl.DataFrame) -> pl.DataFrame:
@@ -163,6 +166,87 @@ def __add_triplet_imbalance(df: pl.DataFrame) -> pl.DataFrame:
         df = df.with_columns(
             ((_max - _mid) / (_mid - _min)).alias(f"{comb[0]}_{comb[1]}_{comb[2]}_imb")
         )
+    return df
+
+
+def __add_additional_imbalance(df: pl.DataFrame) -> pl.DataFrame:
+    df = df.with_columns(
+        (pl.col("ask_size") + pl.col("bid_size")).alias("volume"),
+        (pl.col("ask_size") / pl.col("bid_size")).alias("size_imbalance"),
+        ((pl.col("ask_price") + pl.col("bid_price")) / 2).alias("mid_price"),
+        (
+            (pl.col("bid_size") - pl.col("ask_size"))
+            / (pl.col("bid_size") + pl.col("ask_size"))
+        ).alias("liquidity_imbalance"),
+        (
+            (pl.col("imbalance_size") - pl.col("matched_size"))
+            / (pl.col("imbalance_size") + pl.col("matched_size"))
+        ).alias("matched_imbalance"),
+    )
+    return df
+
+
+def __add_pressure(df: pl.DataFrame) -> pl.DataFrame:
+    df = df.with_columns(
+        (pl.col("ask_price") - pl.col("bid_price")).alias("price_spread")
+    )
+    # fmt: off
+    df = df.with_columns(
+        pl.col("imbalance_size").diff().over("stock_id") / pl.col("matched_size").alias("imbalance_momentum"),  # noqa
+        pl.col("price_spread").diff().over("stock_id").alias("spread_intensity"),
+        (pl.col("imbalance_size") * pl.col("price_spread")).alias("price_pressure"),
+        (pl.col("liquidity_imbalance") * pl.col("price_spread")).alias("market_urgency"),
+        ((pl.col("ask_size") - pl.col("bid_size")) * (pl.col("far_price") - pl.col("near_price"))).alias("depth_pressure"),  # noqa
+    )
+    # 精度が落ちるので削除
+    df = df.drop("price_spread")
+    return df
+
+
+def __add_statistic_agg(df: pl.DataFrame) -> pl.DataFrame:
+    prices = [
+        "reference_price",
+        "far_price",
+        "near_price",
+        "ask_price",
+        "bid_price",
+        "wap",
+    ]
+    sizes = ["matched_size", "bid_size", "ask_size", "imbalance_size"]
+    df = df.with_columns(
+        df.select(prices).mean_horizontal().alias("all_prices_mean"),
+        pl.Series(df.select(prices).to_pandas().std(axis=1)).alias("all_prices_std"),
+        pl.Series(df.select(prices).to_pandas().skew(axis=1)).alias("all_prices_skew"),
+        pl.Series(df.select(prices).to_pandas().kurt(axis=1)).alias("all_prices_kurt"),
+        df.select(sizes).mean_horizontal().alias("all_sizes_mean"),
+        pl.Series(df.select(sizes).to_pandas().std(axis=1)).alias("all_sizes_std"),
+        pl.Series(df.select(sizes).to_pandas().skew(axis=1)).alias("all_sizes_skew"),
+        pl.Series(df.select(sizes).to_pandas().kurt(axis=1)).alias("all_sizes_kurt"),
+    )
+    return df
+
+
+def __add_time(df: pl.DataFrame) -> pl.DataFrame:
+    df = df.with_columns(
+        (pl.col("date_id") % 5).alias("day_of_week"),
+        (pl.col("seconds_in_bucket") % 60).alias("seconds"),
+        (pl.col("seconds_in_bucket") // 60).alias("minutes"),
+        (540 - pl.col("seconds_in_bucket")).alias("time_to_market_close"),
+    )
+    return df
+
+
+def __add_stock_unit(df: pl.DataFrame) -> pl.DataFrame:
+    # fmt: off
+    stock_unit_df = df.group_by("stock_id").agg(
+        (pl.col("bid_size").median() + pl.col("ask_size").median()).alias("stock_unit_median_size"),
+        (pl.col("bid_size").std() + pl.col("ask_size").std()).alias("stock_unit_std_size"),
+        (pl.col("bid_size").max() - pl.col("bid_size").min()).alias("stock_unit_ptp_size"),
+        (pl.col("bid_price").median() + pl.col("ask_price").median()).alias("stock_unit_median_price"),  # noqa
+        (pl.col("bid_price").std() + pl.col("ask_price").std()).alias("stock_unit_std_price"),
+        (pl.col("bid_price").max() - pl.col("bid_price").min()).alias("stock_unit_ptp_price"),
+    )
+    df = df.join(stock_unit_df, on="stock_id")
     return df
 
 
@@ -195,16 +279,11 @@ def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
     # imbalance features
     df = __add_pair_imbalance(df)
     df = __add_triplet_imbalance(df)
+    df = __add_additional_imbalance(df)
 
-    df = df.with_columns(
-        (
-            (pl.col("bid_size") - pl.col("ask_size"))
-            / (pl.col("bid_size") + pl.col("ask_size"))
-        ).alias("imb_s1"),
-        (
-            (pl.col("imbalance_size") - pl.col("matched_size"))
-            / (pl.col("imbalance_size") + pl.col("matched_size"))
-        ).alias("imb_s2"),
-    )
+    df = __add_pressure(df)
+    df = __add_statistic_agg(df)
+    # df = __add_time(df)
+    # df = __add_stock_unit(df)
 
     return df.drop("stock_id", "row_id")
