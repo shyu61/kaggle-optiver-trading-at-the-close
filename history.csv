@@ -22,8 +22,8 @@ exp020,6.268103737876827,6.2229760057834875,5.4971,same exp015
 exp021,6.264694706636736,,,add rolling features about prices
 exp022,6.263941091196153,,,add additional imbalance features
 exp023,6.261458941452388,,,add pressure features
-exp024,6.261221124338282,6.218152508557716,,add statistic aggregation features
-exp025,,,,
+exp024,6.261221124338282,6.218152508557716,5.4794,add statistic aggregation features
+exp025,6.264077653624966,,,"add time, and stock_unit features"
 exp026,,,,
 ,,,,
 ,,,,

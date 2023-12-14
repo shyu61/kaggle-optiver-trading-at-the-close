@@ -283,7 +283,7 @@ def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
 
     df = __add_pressure(df)
     df = __add_statistic_agg(df)
-    # df = __add_time(df)
-    # df = __add_stock_unit(df)
+    df = __add_time(df)
+    df = __add_stock_unit(df)
 
     return df.drop("stock_id", "row_id")
