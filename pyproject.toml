@@ -24,6 +24,9 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "click>=8.1.7",
     "TA-Lib>=0.4.28",
+    "torch>=2.1.1",
+    "torchvision>=0.16.1",
+    "pytorch-lightning>=2.1.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
