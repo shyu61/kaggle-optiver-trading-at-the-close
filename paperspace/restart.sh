@@ -19,11 +19,4 @@ awk '/-e file:\./ {flag=1; next} flag' "./kaggle-optiver-trading-at-the-close/re
 python3.10 -m pip install -r requirements.txt
 source /root/.bashrc
 
-# setup lightgbm for GPU
-python3.10 -m pip uninstall lightgbm
-python3.10 -m pip install lightgbm \
-    --no-binary lightgbm \
-    --no-cache lightgbm \
-    --config-settings=cmake.define.USE_CUDA=ON
-
 echo "===== completed ====="
