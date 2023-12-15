@@ -32,7 +32,7 @@ def set_logger():
 logger = set_logger()
 
 
-def train_purged_cv_for_ensemble(
+def train_cpcv_for_emsemble(
     cfg: DictConfig,
     df: pl.DataFrame,
     model_names: List[str],
@@ -132,30 +132,30 @@ def train_whole_dataset(
 def init_model(model_type: str, params: Dict = {}) -> Any:
     if model_type == "lgb":
         return lgb.LGBMRegressor(
-            # **{
-            #     "objective": "mae",
-            #     "n_estimators": 500,
-            #     "verbosity": -1,
-            #     "random_state": 42,
-            #     **params,
-            # }
             **{
                 "objective": "mae",
-                "n_estimators": 6000,
-                "num_leaves": 256,
-                "subsample": 0.6,
-                "colsample_bytree": 0.8,
-                "learning_rate": 0.00871,
-                "max_depth": 11,
-                "n_jobs": -1,
-                # "device": "gpu",
-                "importance_type": "gain",
-                "reg_alpha": 0.1,
-                "reg_lambda": 3.25,
+                "n_estimators": 500,
                 "verbosity": -1,
                 "random_state": 42,
                 **params,
             }
+            # **{
+            #     "objective": "mae",
+            #     "n_estimators": 6000,
+            #     "num_leaves": 256,
+            #     "subsample": 0.6,
+            #     "colsample_bytree": 0.8,
+            #     "learning_rate": 0.00871,
+            #     "max_depth": 11,
+            #     "n_jobs": -1,
+            #     # "device": "gpu",
+            #     "importance_type": "gain",
+            #     "reg_alpha": 0.1,
+            #     "reg_lambda": 3.25,
+            #     "verbosity": -1,
+            #     "random_state": 42,
+            #     **params,
+            # }
         )
     elif model_type == "cbt":
         return cbt.CatBoostRegressor(
@@ -186,7 +186,8 @@ def main(cfg: DictConfig):
         # model_names.extend(["cbt", "xgb"])
 
     logger.info("Training models...")
-    _, best_iters = train_purged_cv_for_ensemble(cfg, df, model_names)
+    # _, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
+    best_iters = {"lgb": 831}
     if cfg.save_model:
         trained_models = train_whole_dataset(df, model_names, best_iters)
         for model_name, models in trained_models.items():

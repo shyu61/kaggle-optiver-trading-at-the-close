@@ -1,6 +1,7 @@
 from itertools import combinations
 
 import polars as pl
+import numpy as np
 
 # import talib
 
@@ -197,6 +198,17 @@ def __add_pressure(df: pl.DataFrame) -> pl.DataFrame:
         (pl.col("imbalance_size") * pl.col("price_spread")).alias("price_pressure"),
         (pl.col("liquidity_imbalance") * pl.col("price_spread")).alias("market_urgency"),
         ((pl.col("ask_size") - pl.col("bid_size")) * (pl.col("far_price") - pl.col("near_price"))).alias("depth_pressure"),  # noqa
+        (pl.col("ask_price") - pl.col("bid_price")) / (pl.col("ask_size") + pl.col("bid_size")).alias("spread_depth_ratio"),  # noqa
+        pl.col("mid_price").diff(5).apply(np.sign).cast(pl.Int8).alias("mid_price_movement"),
+        (
+            (
+                (pl.col("bid_price") * pl.col("ask_size"))
+                + (pl.col("ask_price") * pl.col("bid_size"))
+            )
+            / (pl.col("ask_size") + pl.col("bid_size"))
+        ).alias("micro_price"),
+        ((pl.col("ask_price") - pl.col("bid_price")) / pl.col("wap")).alias("relative_spread"),
+
     )
     # 精度が落ちるので削除
     df = df.drop("price_spread")
