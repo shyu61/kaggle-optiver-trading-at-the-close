@@ -66,7 +66,7 @@ def train_cpcv_for_emsemble(
 
         preds_dict = {}
         for model_name in model_names:
-            model = init_model(model_name)
+            model = init_model(cfg, model_name)
             if model_name == "lgb":
                 model.fit(
                     X_train,
@@ -111,6 +111,7 @@ def train_cpcv_for_emsemble(
 
 
 def train_whole_dataset(
+    cfg: DictConfig,
     df: pl.DataFrame,
     model_names: List[str],
     best_iters: Dict[str, Any],
@@ -119,7 +120,7 @@ def train_whole_dataset(
     X_train, y_train = df.drop("target").to_pandas(), df["target"].to_pandas()
 
     for model_name in tqdm(model_names, total=len(model_names)):
-        model = init_model(model_name, {"n_estimators": best_iters[model_name]})
+        model = init_model(cfg, model_name, {"n_estimators": best_iters[model_name]})
         if model_name == "lgb":
             model.fit(X_train, y_train)
         else:
@@ -129,34 +130,38 @@ def train_whole_dataset(
     return trained_models
 
 
-def init_model(model_type: str, params: Dict = {}) -> Any:
+def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
     if model_type == "lgb":
-        return lgb.LGBMRegressor(
-            **{
-                "objective": "mae",
-                "n_estimators": 500,
-                "verbosity": -1,
-                "random_state": 42,
-                **params,
-            }
-            # **{
-            #     "objective": "mae",
-            #     "n_estimators": 6000,
-            #     "num_leaves": 256,
-            #     "subsample": 0.6,
-            #     "colsample_bytree": 0.8,
-            #     "learning_rate": 0.00871,
-            #     "max_depth": 11,
-            #     "n_jobs": -1,
-            #     # "device": "gpu",
-            #     "importance_type": "gain",
-            #     "reg_alpha": 0.1,
-            #     "reg_lambda": 3.25,
-            #     "verbosity": -1,
-            #     "random_state": 42,
-            #     **params,
-            # }
-        )
+        if cfg.env == "local":
+            return lgb.LGBMRegressor(
+                **{
+                    "objective": "mae",
+                    "n_estimators": 500,
+                    "verbosity": -1,
+                    "random_state": 42,
+                    **params,
+                }
+            )
+        elif cfg.env == "paperspace":
+            return lgb.LGBMRegressor(
+                **{
+                    "objective": "mae",
+                    "n_estimators": 6000,
+                    "num_leaves": 256,
+                    "subsample": 0.6,
+                    "colsample_bytree": 0.8,
+                    "learning_rate": 0.00871,
+                    "max_depth": 11,
+                    "n_jobs": -1,
+                    "device": "cuda",
+                    "importance_type": "gain",
+                    "reg_alpha": 0.1,
+                    "reg_lambda": 3.25,
+                    "verbosity": -1,
+                    "random_state": 42,
+                    **params,
+                }
+            )
     elif model_type == "cbt":
         return cbt.CatBoostRegressor(
             **{"objective": "MAE", "n_estimators": 3000, "random_seed": 42, **params}
@@ -189,7 +194,7 @@ def main(cfg: DictConfig):
     _, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
     # best_iters = {"lgb": 831}
     if cfg.save_model:
-        trained_models = train_whole_dataset(df, model_names, best_iters)
+        trained_models = train_whole_dataset(cfg, df, model_names, best_iters)
         for model_name, models in trained_models.items():
             joblib.dump(models, f"{model_name}_models.joblib")
 

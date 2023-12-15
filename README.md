@@ -28,5 +28,5 @@ python -m run.inference dir=kaggle model.dir=/kaggle/input/otc-models
 - Paperspace
 ```bash
 GIT_SSH_COMMAND="ssh -F /notebooks/.ssh/config" git pull
-python3.10 -m run.train dir=paperspace exp_name=exp001 is_lgb_only=true
+python3.10 -m run.train dir=paperspace env=paperspace exp_name=exp001 is_lgb_only=true
 ```

@@ -13,6 +13,7 @@ defaults:
   - dir: local
 
 exp_name: exp001
+env: local
 cv:
   n_splits: 5
   n_tests: 2
