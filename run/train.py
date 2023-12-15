@@ -100,7 +100,11 @@ def train_purged_cv_for_ensemble(
             )
         )
 
-    best_iters = {k: int(np.mean(v)) for k, v in best_iters.items()}
+    # best_iterの結果を使うのは全データ学習時なので、回数を補正する
+    best_iters = {
+        k: int(np.mean(v)) * cfg.cv.n_splits // (cfg.cv.n_splits - cfg.cv.n_tests)
+        for k, v in best_iters.items()
+    }
     logger.info(f"ensemble CV score: {np.mean(scores)}")
     logger.info(f"best iters: {best_iters}")
     return trained_models, best_iters
@@ -128,30 +132,30 @@ def train_whole_dataset(
 def init_model(model_type: str, params: Dict = {}) -> Any:
     if model_type == "lgb":
         return lgb.LGBMRegressor(
-            **{
-                "objective": "mae",
-                "n_estimators": 500,
-                "verbosity": -1,
-                "random_state": 42,
-                **params,
-            }
             # **{
             #     "objective": "mae",
-            #     "n_estimators": 6000,
-            #     "num_leaves": 256,
-            #     "subsample": 0.6,
-            #     "colsample_bytree": 0.8,
-            #     "learning_rate": 0.00871,
-            #     "max_depth": 11,
-            #     "n_jobs": -1,
-            #     # "device": "gpu",
-            #     "importance_type": "gain",
-            #     "reg_alpha": 0.1,
-            #     "reg_lambda": 3.25,
+            #     "n_estimators": 500,
             #     "verbosity": -1,
             #     "random_state": 42,
             #     **params,
             # }
+            **{
+                "objective": "mae",
+                "n_estimators": 6000,
+                "num_leaves": 256,
+                "subsample": 0.6,
+                "colsample_bytree": 0.8,
+                "learning_rate": 0.00871,
+                "max_depth": 11,
+                "n_jobs": -1,
+                # "device": "gpu",
+                "importance_type": "gain",
+                "reg_alpha": 0.1,
+                "reg_lambda": 3.25,
+                "verbosity": -1,
+                "random_state": 42,
+                **params,
+            }
         )
     elif model_type == "cbt":
         return cbt.CatBoostRegressor(

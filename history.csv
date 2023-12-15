@@ -28,4 +28,10 @@ exp026,6.257826674029547,,,"change hyper parameters, same with exp025"
 exp027,6.257436361619006,,,"change hyper parameters, same with exp024"
 exp028,6.236311813603407,,,"use CPCV, same with exp024"
 exp029,6.2307072583108445,,,"use CPCV, same with exp025"
-exp030,,,,
+exp030,6.230241548143452,,,add weighted_wap
+exp031,6.230347771027332,,,add wap_momentum
+exp032,,,,
+,,,,
+,,,,
+,,,,
+,,,,

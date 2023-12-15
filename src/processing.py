@@ -73,9 +73,9 @@ def __add_index_wap(df: pl.DataFrame) -> pl.DataFrame:
         (pl.col("wap") * pl.col("weight")).sum().alias("index_wap")
     )
     df = df.join(index_wap_df, on="time_id").sort("stock_id", "time_id")
-    # df = df.with_columns(
-    #     (pl.col("wap") * pl.col("weight")).alias("weighted_wap"),
-    # )
+    df = df.with_columns(
+        (pl.col("wap") * pl.col("weight")).alias("weighted_wap"),
+    )
     return df
 
 
