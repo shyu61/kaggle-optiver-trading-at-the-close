@@ -1,5 +1,6 @@
 import sys
 from logging import DEBUG, StreamHandler, getLogger
+from math import comb
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -8,12 +9,14 @@ import hydra
 import joblib
 import lightgbm as lgb
 import numpy as np
+import pandas as pd
 import polars as pl
 import xgboost as xgb
 from omegaconf import DictConfig
 from sklearn.metrics import mean_absolute_error
 from tqdm import tqdm
 
+from src.cpcv import CombinatorialPurgedCrossValidation
 from src.processing import feature_engineering, preprocessing
 
 
@@ -39,25 +42,27 @@ def train_purged_cv_for_ensemble(
         trained_models[model_name] = []
         best_iters[model_name] = []
 
-    fold_size = df["date_id"].n_unique() // cfg.n_splits
-    for i in tqdm(range(cfg.n_splits), total=cfg.n_splits):
-        start, end = i * fold_size, (i + 1) * fold_size
-        train_expr = (
-            (~pl.col("date_id").is_between(start, end))
-            & (~pl.col("date_id").is_between(start - 2, start + 2))
-            & (~pl.col("date_id").is_between(end - 2, end + 2))
+    cpcv = CombinatorialPurgedCrossValidation(
+        n_splits=cfg.cv.n_splits,
+        n_tests=cfg.cv.n_tests,
+        purge_gap=cfg.cv.purge_gap,
+        embargo_gap=cfg.cv.embargo_gap,
+    )
+    for i, (train_idx, valid_idxes) in enumerate(
+        tqdm(
+            cpcv.split(np.arange(df.shape[0])),
+            total=comb(cfg.cv.n_splits, cfg.cv.n_tests),
         )
-        valid_expr = (
-            pl.col("date_id").is_between(start, end)
-            & (~pl.col("date_id").is_between(start - 2, start + 2))
-            & (~pl.col("date_id").is_between(end - 2, end + 2))
+    ):
+        train_idx = train_idx.to_numpy().reshape(-1)
+        valid_idx = pd.concat(valid_idxes).to_numpy().reshape(-1)
+
+        X_train, X_valid, y_train, y_valid = (
+            df.drop("target")[train_idx].to_pandas(),
+            df.drop("target")[valid_idx].to_pandas(),
+            df["target"][train_idx].to_pandas(),
+            df["target"][valid_idx].to_pandas(),
         )
-        train, valid = df.filter(train_expr), df.filter(valid_expr)
-        X_train, X_valid = (
-            train.drop("target").to_pandas(),
-            valid.drop("target").to_pandas(),
-        )
-        y_train, y_valid = train["target"].to_pandas(), valid["target"].to_pandas()
 
         preds_dict = {}
         for model_name in model_names:
@@ -124,12 +129,29 @@ def init_model(model_type: str, params: Dict = {}) -> Any:
     if model_type == "lgb":
         return lgb.LGBMRegressor(
             **{
-                "objective": "regression_l1",
+                "objective": "mae",
                 "n_estimators": 500,
                 "verbosity": -1,
                 "random_state": 42,
                 **params,
             }
+            # **{
+            #     "objective": "mae",
+            #     "n_estimators": 6000,
+            #     "num_leaves": 256,
+            #     "subsample": 0.6,
+            #     "colsample_bytree": 0.8,
+            #     "learning_rate": 0.00871,
+            #     "max_depth": 11,
+            #     "n_jobs": -1,
+            #     # "device": "gpu",
+            #     "importance_type": "gain",
+            #     "reg_alpha": 0.1,
+            #     "reg_lambda": 3.25,
+            #     "verbosity": -1,
+            #     "random_state": 42,
+            #     **params,
+            # }
         )
     elif model_type == "cbt":
         return cbt.CatBoostRegressor(

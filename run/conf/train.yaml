@@ -13,6 +13,10 @@ defaults:
   - dir: local
 
 exp_name: exp001
-n_splits: 5
+cv:
+  n_splits: 5
+  n_tests: 2
+  purge_gap: 10
+  embargo_gap: 10
 is_lgb_only: false
 save_model: true
