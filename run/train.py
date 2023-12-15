@@ -186,8 +186,8 @@ def main(cfg: DictConfig):
         # model_names.extend(["cbt", "xgb"])
 
     logger.info("Training models...")
-    # _, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
-    best_iters = {"lgb": 831}
+    _, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
+    # best_iters = {"lgb": 831}
     if cfg.save_model:
         trained_models = train_whole_dataset(df, model_names, best_iters)
         for model_name, models in trained_models.items():

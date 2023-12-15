@@ -16,6 +16,15 @@ python3.10 get-pip.py --user
 echo "alias pip='python3.10 -m pip'" >> /root/.bashrc
 rm get-pip.py
 
+# setup for lightgbm
+apt install -y \
+    --no-install-recommends \
+    cmake \
+    build-essential \
+    libboost-dev \
+    libboost-system-dev \
+    libboost-filesystem-dev
+
 # setup ta-lib
 wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
 tar -xzf ta-lib-0.4.0-src.tar.gz
@@ -54,6 +63,13 @@ GIT_SSH_COMMAND="ssh -F /notebooks/.ssh/config" git clone git@github.com:shyu61/
 awk '/-e file:\./ {flag=1; next} flag' "./kaggle-optiver-trading-at-the-close/requirements.lock" > "requirements.txt"
 python3.10 -m pip install -r requirements.txt
 source /root/.bashrc
+
+# install lightgbm for GPU
+python3.10 -m pip uninstall lightgbm
+python3.10 -m pip install lightgbm \
+    --no-binary lightgbm \
+    --no-cache lightgbm \
+    --config-settings=cmake.define.USE_CUDA=ON
 
 # checkout
 cd $REPO
