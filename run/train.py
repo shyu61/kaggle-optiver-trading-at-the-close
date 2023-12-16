@@ -170,7 +170,7 @@ def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
             **{
                 "objective": "MAE",
                 "n_estimators": 3000,
-                **({"task_type": "gpu"} if cfg.env == "paperspace" else {}),
+                **({"task_type": "GPU"} if cfg.env == "paperspace" else {}),
                 "random_seed": 42,
                 **params
             }
@@ -181,7 +181,7 @@ def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
                 "tree_method": "hist",
                 "objective": "reg:absoluteerror",
                 "n_estimators": 500,
-                **({"device": "gpu"} if cfg.env == "paperspace" else {}),
+                **({"device": "cuda"} if cfg.env == "paperspace" else {}),
                 **params,
             }
         )
