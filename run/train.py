@@ -171,8 +171,7 @@ def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
                 "objective": "MAE",
                 "n_estimators": 3000,
                 **({"task_type": "gpu"} if cfg.env == "paperspace" else {}),
-                "task_type": "gpu",
-                "random_seed": 42
+                "random_seed": 42,
                 **params
             }
         )
