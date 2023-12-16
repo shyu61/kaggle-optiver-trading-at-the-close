@@ -32,6 +32,12 @@ exp030,6.230241548143452,,,add weighted_wap
 exp031,6.230347771027332,,,add wap_momentum
 exp032,6.229969146034372,,5.4375,add some pressure features
 exp033,6.230187198393099,,,add price_spread
-exp034,,,,
-exp035,,,,
-,,,,
+exp034,6.227330711563046,,5.4208,"use full hyper parameters, same with exp032"
+exp035,6.263768738221292,,,update to public notebook
+exp036,6.212555054484248,,,"change cv to purged_cv, same with exp035"
+exp037,6.217823960293252,,,"change cv to purged_cv, same with exp032"
+exp038,6.2634158951050365,,,"update to public notebook, train full hyper parameters, use cpcv iter"
+exp039,,,,
+exp040,,,,
+exp041,,,,
+exp042,,,,

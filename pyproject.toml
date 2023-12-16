@@ -28,6 +28,7 @@ dependencies = [
     "torchvision>=0.16.1",
     "pytorch-lightning>=2.1.2",
     "prophet>=1.1.5",
+    "numba>=0.58.1",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
