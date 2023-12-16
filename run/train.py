@@ -199,10 +199,7 @@ def main(cfg: DictConfig):
         # model_names.extend(["cbt", "xgb"])
 
     logger.info("Training models...")
-    trained_cv_models, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
-    for model_name, models in trained_cv_models.items():
-        # {model_name}_cv_models are List, and in it has cfg.cv.n_splits models.
-        joblib.dump(models, f"{model_name}_cv_models.joblib")
+    _, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
     if cfg.whole_training:
         trained_models = train_whole_dataset(cfg, df, model_names, best_iters)
         for model_name, models in trained_models.items():

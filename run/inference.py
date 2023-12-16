@@ -12,7 +12,6 @@ def load_models(cfg: DictConfig) -> Dict:
     all_models = {}
     for kind in cfg.model.kinds:
         all_models[kind] = [joblib.load(Path(cfg.model.dir) / f"{kind}_models.joblib")]
-        all_models[kind].extend(joblib.load(Path(cfg.model.dir) / f"{kind}_cv_models.joblib"))
     return all_models
 
 
@@ -53,16 +52,10 @@ def main(cfg: DictConfig):
         df = preprocessing(df)
         df = feature_engineering(df)
 
-        preds = np.zeros(len(df))
-        weight = 1 / (cfg.model.cv_size + 2)
+        preds = []
         for kind in cfg.model.kinds:
-            for i in range(len(models[kind])):
-                if i == 0:
-                    # whole dataset modelはweightを2倍にする
-                    weight = weight * 2
-                pred = models[kind][i].predict(df.to_pandas())
-                preds += pred * weight
-        sample_prediction["target"] = preds
+            preds.append(models[kind].predict(df.to_pandas()))
+        sample_prediction["target"] = np.mean(preds, 0)
         env.predict(sample_prediction)
 
 
