@@ -65,7 +65,7 @@ def main(cfg: DictConfig):
         all_models_preds = []
         for kind in cfg.model.kinds:
             preds = np.zeros(len(df))
-            for i in cfg.model.n_splits + 1:
+            for i in range(cfg.model.n_splits + 1):
                 pred = models[kind][i].predict(df.to_pandas())
                 preds += pred / (
                     2 ** (cfg.model.n_splits + 1 - i)
