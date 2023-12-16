@@ -74,6 +74,7 @@ def train_cpcv_for_emsemble(
                     eval_set=[(X_valid, y_valid)],
                     callbacks=[lgb.early_stopping(100)],
                 )
+                logger.info(f"{model_name} fold {i} iteration: {model.best_iteration_}")
                 best_iters[model_name].append(model.best_iteration_)
             else:
                 model.fit(
@@ -82,6 +83,9 @@ def train_cpcv_for_emsemble(
                     eval_set=[(X_valid, y_valid)],
                     early_stopping_rounds=100,
                     verbose=False,
+                )
+                logger.info(
+                    f"{model_name} fold {i} iteration: {model.get_best_iteration()}"
                 )
                 best_iters[model_name].append(model.get_best_iteration())
 
