@@ -20,5 +20,9 @@ cv:
   n_tests: 2
   purge_gap: 10
   embargo_gap: 10
-is_lgb_only: false
+model:
+  kinds:
+    - lgb
+    # - cbt
+    # - xgb
 whole_training: true

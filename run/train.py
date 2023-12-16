@@ -135,17 +135,7 @@ def train_whole_dataset(
 
 def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
     if model_type == "lgb":
-        if cfg.env == "local":
-            return lgb.LGBMRegressor(
-                **{
-                    "objective": "mae",
-                    "n_estimators": 500,
-                    "verbosity": -1,
-                    "random_state": 42,
-                    **params,
-                }
-            )
-        elif cfg.env == "paperspace":
+        if cfg.env == "paperspace":
             return lgb.LGBMRegressor(
                 **{
                     "objective": "mae",
@@ -165,9 +155,26 @@ def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
                     **params,
                 }
             )
+        else:
+            return lgb.LGBMRegressor(
+                **{
+                    "objective": "mae",
+                    "n_estimators": 500,
+                    "verbosity": -1,
+                    "random_state": 42,
+                    **params,
+                }
+            )
     elif model_type == "cbt":
         return cbt.CatBoostRegressor(
-            **{"objective": "MAE", "n_estimators": 3000, "random_seed": 42, **params}
+            **{
+                "objective": "MAE",
+                "n_estimators": 3000,
+                **({"task_type": "gpu"} if cfg.env == "paperspace" else {}),
+                "task_type": "gpu",
+                "random_seed": 42
+                **params
+            }
         )
     elif model_type == "xgb":
         return xgb.XGBRegressor(
@@ -175,6 +182,7 @@ def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
                 "tree_method": "hist",
                 "objective": "reg:absoluteerror",
                 "n_estimators": 500,
+                **({"device": "gpu"} if cfg.env == "paperspace" else {}),
                 **params,
             }
         )
@@ -193,10 +201,9 @@ def main(cfg: DictConfig):
     df = preprocessing(df)
     df = feature_engineering(df)
 
-    model_names = ["lgb"]
-    if not cfg.is_lgb_only:
-        model_names.extend(["cbt"])
-        # model_names.extend(["cbt", "xgb"])
+    model_names = []
+    for model_name in cfg.model.kinds:
+        model_names.append(model_name)
 
     logger.info("Training models...")
     _, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
