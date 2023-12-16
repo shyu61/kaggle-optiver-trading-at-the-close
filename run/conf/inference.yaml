@@ -22,4 +22,4 @@ model:
     # - cbt
     # - xgb
   dir: ${dir.output}/train/${exp_name}/${run_name}
-  cv_size: 10
+  n_splits: 5

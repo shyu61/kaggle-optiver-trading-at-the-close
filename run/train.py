@@ -1,6 +1,5 @@
 import sys
 from logging import DEBUG, StreamHandler, getLogger
-from math import comb
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -9,14 +8,11 @@ import hydra
 import joblib
 import lightgbm as lgb
 import numpy as np
-import pandas as pd
 import polars as pl
 import xgboost as xgb
 from omegaconf import DictConfig
 from sklearn.metrics import mean_absolute_error
 from tqdm import tqdm
-
-from src.cpcv import CombinatorialPurgedCrossValidation
 
 
 def set_logger():
@@ -31,7 +27,7 @@ def set_logger():
 logger = set_logger()
 
 
-def train_cpcv_for_emsemble(
+def train_purged_cv_for_ensemble(
     cfg: DictConfig,
     df: pl.DataFrame,
     model_names: List[str],
@@ -41,27 +37,27 @@ def train_cpcv_for_emsemble(
         trained_models[model_name] = []
         best_iters[model_name] = []
 
-    cpcv = CombinatorialPurgedCrossValidation(
-        n_splits=cfg.cv.n_splits,
-        n_tests=cfg.cv.n_tests,
-        purge_gap=cfg.cv.purge_gap,
-        embargo_gap=cfg.cv.embargo_gap,
-    )
-    for i, (train_idx, valid_idxes) in enumerate(
-        tqdm(
-            cpcv.split(np.arange(df.shape[0])),
-            total=comb(cfg.cv.n_splits, cfg.cv.n_tests),
+    fold_size = df["date_id"].n_unique() // cfg.cv.n_splits
+    for i in tqdm(range(cfg.cv.n_splits), total=cfg.cv.n_splits):
+        start, end = i * fold_size, (i + 1) * fold_size
+        # fmt: off
+        train_expr = (
+            (~pl.col("date_id").is_between(start, end))
+            & (~pl.col("date_id").is_between(start - cfg.cv.purge_gap, start + cfg.cv.purge_gap))
+            & (~pl.col("date_id").is_between(end - cfg.cv.purge_gap, end + cfg.cv.purge_gap))
         )
-    ):
-        train_idx = train_idx.to_numpy().reshape(-1)
-        valid_idx = pd.concat(valid_idxes).to_numpy().reshape(-1)
-
-        X_train, X_valid, y_train, y_valid = (
-            df.drop("target")[train_idx].to_pandas(),
-            df.drop("target")[valid_idx].to_pandas(),
-            df["target"][train_idx].to_pandas(),
-            df["target"][valid_idx].to_pandas(),
+        valid_expr = (
+            pl.col("date_id").is_between(start, end)
+            & (~pl.col("date_id").is_between(start - cfg.cv.purge_gap, start + cfg.cv.purge_gap))
+            & (~pl.col("date_id").is_between(end - cfg.cv.purge_gap, end + cfg.cv.purge_gap))
         )
+        # fmt: on
+        train, valid = df.filter(train_expr), df.filter(valid_expr)
+        X_train, X_valid = (
+            train.drop("target").to_pandas(),
+            valid.drop("target").to_pandas(),
+        )
+        y_train, y_valid = train["target"].to_pandas(), valid["target"].to_pandas()
 
         preds_dict = {}
         for model_name in model_names:
@@ -105,7 +101,7 @@ def train_cpcv_for_emsemble(
 
     # best_iterの結果を使うのは全データ学習時なので、回数を補正する
     best_iters = {
-        k: int(np.mean(v)) * cfg.cv.n_splits // (cfg.cv.n_splits - cfg.cv.n_tests)
+        k: int(np.mean(v)) * cfg.cv.n_splits // (cfg.cv.n_splits - 1)
         for k, v in best_iters.items()
     }
     logger.info(f"ensemble CV score: {np.mean(scores)}")
@@ -172,7 +168,7 @@ def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
                 "n_estimators": 3000,
                 **({"task_type": "GPU"} if cfg.env == "paperspace" else {}),
                 "random_seed": 42,
-                **params
+                **params,
             }
         )
     elif model_type == "xgb":
@@ -192,9 +188,9 @@ def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
 @hydra.main(config_path="conf", config_name="train", version_base=None)
 def main(cfg: DictConfig):
     if cfg.version == "v1":
-        from src.processing_v1 import preprocessing, feature_engineering
+        from src.processing_v1 import feature_engineering, preprocessing
     elif cfg.version == "v2":
-        from src.processing_v2 import preprocessing, feature_engineering
+        from src.processing_v2 import feature_engineering, preprocessing
 
     df = pl.read_csv(Path(cfg.dir.input) / "train.csv")
     df = preprocessing(df)
@@ -205,7 +201,9 @@ def main(cfg: DictConfig):
         model_names.append(model_name)
 
     logger.info("Training models...")
-    _, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
+    trained_cv_models, best_iters = train_purged_cv_for_ensemble(cfg, df, model_names)
+    for model_name, models in trained_cv_models.items():
+        joblib.dump(models, f"{model_name}_cv_models.joblib")
     if cfg.whole_training:
         trained_models = train_whole_dataset(cfg, df, model_names, best_iters)
         for model_name, models in trained_models.items():

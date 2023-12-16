@@ -11,7 +11,10 @@ from omegaconf import DictConfig
 def load_models(cfg: DictConfig) -> Dict:
     all_models = {}
     for kind in cfg.model.kinds:
-        all_models[kind] = [joblib.load(Path(cfg.model.dir) / f"{kind}_models.joblib")]
+        all_models[kind] = joblib.load(Path(cfg.model.dir) / f"{kind}_cv_models.joblib")
+        all_models[kind].append(
+            joblib.load(Path(cfg.model.dir) / f"{kind}_models.joblib")
+        )
     return all_models
 
 
@@ -28,12 +31,19 @@ def add_time_id(df: pl.DataFrame) -> pl.DataFrame:
     return df.join(tmp, on=["date_id", "seconds_in_bucket"])
 
 
+def calibrate(size: int):
+    sum = 0
+    for i in range(size):
+        sum += 1 / (2 ** (size - i))
+    return 1 / sum
+
+
 @hydra.main(config_path="conf", config_name="inference", version_base=None)
 def main(cfg: DictConfig):
     if cfg.version == "v1":
-        from src.processing_v1 import preprocessing, feature_engineering
+        from src.processing_v1 import feature_engineering, preprocessing
     elif cfg.version == "v2":
-        from src.processing_v2 import preprocessing, feature_engineering
+        from src.processing_v2 import feature_engineering, preprocessing
 
     if cfg.env == "dev":
         import data.input.public_timeseries_testing_util as optiver2023
@@ -52,10 +62,17 @@ def main(cfg: DictConfig):
         df = preprocessing(df)
         df = feature_engineering(df)
 
-        preds = []
+        all_models_preds = []
         for kind in cfg.model.kinds:
-            preds.append(models[kind].predict(df.to_pandas()))
-        sample_prediction["target"] = np.mean(preds, 0)
+            preds = np.zeros(len(df))
+            for i in cfg.model.n_splits + 1:
+                pred = models[kind][i].predict(df.to_pandas())
+                preds += pred / (
+                    2 ** (cfg.model.n_splits + 1 - i)
+                )  # 1/64, 1/32, 1/16, 1/8, 1/4, 1/2
+            preds *= calibrate(cfg.model.n_splits + 1)
+            all_models_preds.append(preds)
+        sample_prediction["target"] = np.mean(all_models_preds, 0)
         env.predict(sample_prediction)
 
 

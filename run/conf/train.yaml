@@ -17,9 +17,7 @@ exp_name: exp001
 env: local
 cv:
   n_splits: 5
-  n_tests: 2
-  purge_gap: 10
-  embargo_gap: 10
+  purge_gap: 5
 model:
   kinds:
     - lgb
