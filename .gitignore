@@ -12,3 +12,4 @@ wheels/
 data/
 .env
 notebooks/exp.ipynb
+.ipynb_checkpoints
