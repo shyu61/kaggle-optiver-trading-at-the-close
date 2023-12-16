@@ -12,6 +12,7 @@ defaults:
   - _self_
   - dir: local
 
+version: v1
 exp_name: exp001
 env: local
 cv:
@@ -20,4 +21,4 @@ cv:
   purge_gap: 10
   embargo_gap: 10
 is_lgb_only: false
-save_model: true
+whole_training: true

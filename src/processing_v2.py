@@ -82,7 +82,7 @@ def __add_index_wap(df: pl.DataFrame) -> pl.DataFrame:
         (pl.col("wap") * pl.col("stock_weights")).alias("weighted_wap"),
     )
     df = df.with_columns(
-        pl.col("weighted_wap").pct_change(6).over("stock_id").alias("wap_movement"),
+        pl.col("weighted_wap").pct_change(6).over("stock_id").alias("wap_momentum"),
     )
     return df
 
@@ -241,12 +241,12 @@ def __add_pressure(df: pl.DataFrame) -> pl.DataFrame:
     )
     # fmt: off
     df = df.with_columns(
-        pl.col("imbalance_size").diff().over("stock_id") / pl.col("matched_size").alias("imbalance_momentum"),  # noqa
+        (pl.col("imbalance_size").diff().over("stock_id") / pl.col("matched_size")).alias("imbalance_momentum"),  # noqa
         pl.col("price_spread").diff().over("stock_id").alias("spread_intensity"),
         (pl.col("imbalance_size") * pl.col("price_spread")).alias("price_pressure"),
         (pl.col("liquidity_imbalance") * pl.col("price_spread")).alias("market_urgency"),
         ((pl.col("ask_size") - pl.col("bid_size")) * (pl.col("far_price") - pl.col("near_price"))).alias("depth_pressure"),  # noqa
-        (pl.col("ask_price") - pl.col("bid_price")) / (pl.col("ask_size") + pl.col("bid_size")).alias("spread_depth_ratio"),  # noqa
+        ((pl.col("ask_price") - pl.col("bid_price")) / (pl.col("ask_size") + pl.col("bid_size"))).alias("spread_depth_ratio"),  # noqa
         pl.col("mid_price").diff(5).apply(np.sign).cast(pl.Int8).alias("mid_price_movement"),
         (
             (

@@ -17,7 +17,6 @@ from sklearn.metrics import mean_absolute_error
 from tqdm import tqdm
 
 from src.cpcv import CombinatorialPurgedCrossValidation
-from src.processing import feature_engineering, preprocessing
 
 
 def set_logger():
@@ -185,6 +184,11 @@ def init_model(cfg: DictConfig, model_type: str, params: Dict = {}) -> Any:
 
 @hydra.main(config_path="conf", config_name="train", version_base=None)
 def main(cfg: DictConfig):
+    if cfg.version == "v1":
+        from src.processing_v1 import preprocessing, feature_engineering
+    elif cfg.version == "v2":
+        from src.processing_v2 import preprocessing, feature_engineering
+
     df = pl.read_csv(Path(cfg.dir.input) / "train.csv")
     df = preprocessing(df)
     df = feature_engineering(df)
@@ -195,9 +199,11 @@ def main(cfg: DictConfig):
         # model_names.extend(["cbt", "xgb"])
 
     logger.info("Training models...")
-    _, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
-    # best_iters = {"lgb": 831}
-    if cfg.save_model:
+    trained_cv_models, best_iters = train_cpcv_for_emsemble(cfg, df, model_names)
+    for model_name, models in trained_cv_models.items():
+        # {model_name}_cv_models are List, and in it has cfg.cv.n_splits models.
+        joblib.dump(models, f"{model_name}_cv_models.joblib")
+    if cfg.whole_training:
         trained_models = train_whole_dataset(cfg, df, model_names, best_iters)
         for model_name, models in trained_models.items():
             joblib.dump(models, f"{model_name}_models.joblib")

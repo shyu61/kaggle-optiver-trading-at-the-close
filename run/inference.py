@@ -7,8 +7,6 @@ import numpy as np
 import polars as pl
 from omegaconf import DictConfig
 
-from src.processing import feature_engineering, preprocessing
-
 
 def load_models(cfg: DictConfig) -> Dict:
     all_models = {}
@@ -32,6 +30,11 @@ def add_time_id(df: pl.DataFrame) -> pl.DataFrame:
 
 @hydra.main(config_path="conf", config_name="inference", version_base=None)
 def main(cfg: DictConfig):
+    if cfg.version == "v1":
+        from src.processing_v1 import preprocessing, feature_engineering
+    elif cfg.version == "v2":
+        from src.processing_v2 import preprocessing, feature_engineering
+
     if cfg.env == "dev":
         import data.input.public_timeseries_testing_util as optiver2023
     else:
