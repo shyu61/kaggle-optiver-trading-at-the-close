@@ -46,6 +46,8 @@ exp044,paperspace,6.210605231734206,,5.5805,purged_cv,"update public notebook, f
 exp045,local,6.199063462674699,,,,
 exp046,local,6.465402167440591,,,time_series_split,"update public notebook, add wap features"
 exp047,local,6.468885945513435,,,time_series_split,same with exp032
-exp048,paperspace,6.463139699388044,,,time_series_split,update public notebook
-exp049,paperspace,6.470474226115153,,,time_series_split,same with exp032
+exp048,paperspace,6.463139699388044,,5.5957,time_series_split,update public notebook
+exp049,paperspace,6.470474226115153,,5.3981,time_series_split,same with exp032
 exp050,local,6.458371589095141,,,time_series_split,update public notebook
+exp051,,,,,,
+,,,,,,
