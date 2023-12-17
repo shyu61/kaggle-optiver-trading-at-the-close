@@ -229,6 +229,7 @@ def __add_triplet_imbalance(df: pl.DataFrame) -> pl.DataFrame:
                 pl.lit(np.nan).alias(f"{comb[0]}_{comb[1]}_{comb[2]}_imb")
             )
         else:
+            # fmt: off
             df = df.with_columns(
                 ((_max - _mid) / (_mid - _min)).alias(f"{comb[0]}_{comb[1]}_{comb[2]}_imb")
             )

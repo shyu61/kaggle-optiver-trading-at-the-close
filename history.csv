@@ -1,43 +1,51 @@
-exp_name,local_score,local_full_score,kaggle_score,memo
-exp003,,,5.3712,"use GroupKFold, train whole dataset"
-exp004,6.267192637284693,,,
-exp005,6.267199100620914,,,add stock_weights
-exp006,6.260044585477843,,,"add index wap, remove weight"
-exp007,,"- lgb_cv: 6.108056730211516
+exp_name,env,local_score,local_full_score,kaggle_score,metrics,memo
+exp003,,,,5.3712,GroupKFold,train whole dataset
+exp004,,6.267192637284693,,,GroupKFold,
+exp005,,6.267199100620914,,,GroupKFold,add stock_weights
+exp006,,6.260044585477843,,,GroupKFold,"add index wap, remove weight"
+exp007,,,"- lgb_cv: 6.108056730211516
 - cbt_cv: 6.105300248278833
-- ensemble: 6.25559508251711",5.3706,
-exp008,6.243430636868214,,,add rolling features about wap
-exp009,6.2392027162437005,,,"add rolling features about [""imbalance_size"", ""matched_size"", ""bid_size"", ""ask_size""]"
-exp010,6.238353623104943,,,add prev_date_same_sec_wap
-exp011,6.237339902551374,,,add prev_date_1_follow_sec_wap
-exp012,,6.2316225637446125,5.6348,this version is same with exp011
-exp013,6.268542588534398,,,use purgedCV for exp011
-exp014,6.2709225340335975,,,use purgedCV for exp010
-exp015,6.268103737876827,,,use purgedCV for exp009
-exp016,6.274660309508792,,,use purgedCV for exp008
-exp017,6.280684917600131,,,use purgedCV for exp007/exp006
-exp018,,6.235347298912181,5.5971,use purgedCV and leaves are same with exp007/exp006. local_full_score is lgb only.
-exp019,6.269068721476906,,,"add all, and remove prev_date_same_sec_wap"
-exp020,6.268103737876827,6.2229760057834875,5.4971,same exp015
-exp021,6.264694706636736,,,add rolling features about prices
-exp022,6.263941091196153,,,add additional imbalance features
-exp023,6.261458941452388,,,add pressure features
-exp024,6.261221124338282,6.218152508557716,5.4794,add statistic aggregation features
-exp025,6.264077653624966,6.2190753052065055,5.4383,"add time, and stock_unit features"
-exp026,6.257826674029547,,,"change hyper parameters, same with exp025"
-exp027,6.257436361619006,,,"change hyper parameters, same with exp024"
-exp028,6.236311813603407,,,"use CPCV, same with exp024"
-exp029,6.2307072583108445,,,"use CPCV, same with exp025"
-exp030,6.230241548143452,,,add weighted_wap
-exp031,6.230347771027332,,,add wap_momentum
-exp032,6.229969146034372,,5.4375,add some pressure features
-exp033,6.230187198393099,,,add price_spread
-exp034,6.227330711563046,,5.4208,"use full hyper parameters, same with exp032"
-exp035,6.263768738221292,,,update to public notebook
-exp036,6.212555054484248,,,"change cv to purged_cv, same with exp035"
-exp037,6.217823960293252,,,"change cv to purged_cv, same with exp032"
-exp038,6.2634158951050365,,,"update to public notebook, train full hyper parameters, use cpcv iter"
-exp039,,,,
-exp040,,,,
-exp041,,,,
-exp042,,,,
+- ensemble: 6.25559508251711",5.3706,GroupKFold,
+exp008,,6.243430636868214,,,GroupKFold,add rolling features about wap
+exp009,,6.2392027162437005,,,GroupKFold,"add rolling features about [""imbalance_size"", ""matched_size"", ""bid_size"", ""ask_size""]"
+exp010,,6.238353623104943,,,GroupKFold,add prev_date_same_sec_wap
+exp011,,6.237339902551374,,,GroupKFold,add prev_date_1_follow_sec_wap
+exp012,,,6.2316225637446125,5.6348,GroupKFold,this version is same with exp011
+exp013,,6.268542588534398,,,purged_cv,same with exp011
+exp014,,6.2709225340335975,,,purged_cv,same with exp010
+exp015,,6.268103737876827,,,purged_cv,same with exp009
+exp016,,6.274660309508792,,,purged_cv,same with exp008
+exp017,,6.280684917600131,,,purged_cv,same with exp007/exp006
+exp018,,,6.235347298912181,5.5971,purged_cv,same with exp007/exp006. local_full_score is lgb only.
+exp019,,6.269068721476906,,,purged_cv,"add all, and remove prev_date_same_sec_wap"
+exp020,,6.268103737876827,6.2229760057834875,5.4971,purged_cv,same with exp015
+exp021,,6.264694706636736,,,purged_cv,add rolling features about prices
+exp022,,6.263941091196153,,,purged_cv,add additional imbalance features
+exp023,,6.261458941452388,,,purged_cv,add pressure features
+exp024,,6.261221124338282,6.218152508557716,5.4794,purged_cv,add statistic aggregation features
+exp025,,6.264077653624966,6.2190753052065055,5.4383,purged_cv,"add time, and stock_unit features"
+exp026,,6.257826674029547,,,purged_cv,"change hyper parameters, same with exp025"
+exp027,,6.257436361619006,,,purged_cv,"change hyper parameters, same with exp024"
+exp028,,6.236311813603407,,,cpcv,same with exp024
+exp029,,6.2307072583108445,,,cpcv,same with exp025
+exp030,,6.230241548143452,,,cpcv,add weighted_wap
+exp031,,6.230347771027332,,,cpcv,add wap_momentum
+exp032,,6.229969146034372,,5.4375,cpcv,add some pressure features
+exp033,,6.230187198393099,,,cpcv,add price_spread
+exp034,paperspace,6.227330711563046,,5.4208,cpcv,same with exp032
+exp035,local,6.263768738221292,,,cpcv,update to public notebook
+exp036,local,6.212555054484248,,,purged_cv,same with exp035
+exp037,local,6.217823960293252,,,purged_cv,same with exp032
+exp038,paperspace,6.2634158951050365,,5.7773,cpcv,update to public notebook
+exp039,local,6.229969146034372,,5.5578（cv ensemble）,cpcv,same with exp032
+exp040,local,6.262378198303242,,,cpcv,update public notebook
+exp041,local,6.205568266016895,,,purged_cv,same with exp032
+exp042,local,6.198513263180732,,,purged_cv,update public notebook
+exp043,paperspace,6.214302872354425,,5.3981,purged_cv,"same with exp032, full hyper parameters, ensemble lgb+cbt"
+exp044,paperspace,6.210605231734206,,5.5805,purged_cv,"update public notebook, full hyper parameters, ensemble lgb+cbt"
+exp045,local,6.199063462674699,,,,
+exp046,local,6.465402167440591,,,time_series_split,"update public notebook, add wap features"
+exp047,local,6.468885945513435,,,time_series_split,same with exp032
+exp048,paperspace,6.463139699388044,,,time_series_split,update public notebook
+exp049,paperspace,6.470474226115153,,,time_series_split,same with exp032
+exp050,local,6.458371589095141,,,time_series_split,update public notebook
