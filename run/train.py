@@ -12,6 +12,7 @@ import polars as pl
 import xgboost as xgb
 from omegaconf import DictConfig
 from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import TimeSeriesSplit
 from tqdm import tqdm
 
 
@@ -37,22 +38,12 @@ def train_purged_cv_for_ensemble(
         trained_models[model_name] = []
         best_iters[model_name] = []
 
-    fold_size = df["date_id"].n_unique() // cfg.cv.n_splits
-    for i in tqdm(range(cfg.cv.n_splits), total=cfg.cv.n_splits):
-        start, end = i * fold_size, (i + 1) * fold_size
-        # fmt: off
-        train_expr = (
-            (~pl.col("date_id").is_between(start, end))
-            & (~pl.col("date_id").is_between(start - cfg.cv.purge_gap, start + cfg.cv.purge_gap))
-            & (~pl.col("date_id").is_between(end - cfg.cv.purge_gap, end + cfg.cv.purge_gap))
-        )
-        valid_expr = (
-            pl.col("date_id").is_between(start, end)
-            & (~pl.col("date_id").is_between(start - cfg.cv.purge_gap, start + cfg.cv.purge_gap))
-            & (~pl.col("date_id").is_between(end - cfg.cv.purge_gap, end + cfg.cv.purge_gap))
-        )
-        # fmt: on
-        train, valid = df.filter(train_expr), df.filter(valid_expr)
+    tscv = TimeSeriesSplit(n_splits=cfg.cv.n_splits, gap=cfg.cv.purge_gap)
+    for i, (train_idx, valid_idx) in enumerate(
+        tqdm(tscv.split(df["date_id"].unique().sort()), total=cfg.cv.n_splits)
+    ):
+        train = df.filter(pl.col("date_id").is_in(train_idx))
+        valid = df.filter(pl.col("date_id").is_in(valid_idx))
         X_train, X_valid = (
             train.drop("target").to_pandas(),
             valid.drop("target").to_pandas(),
