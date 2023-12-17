@@ -61,7 +61,9 @@ def train_purged_cv_for_ensemble(
                     callbacks=[lgb.early_stopping(100)],
                 )
                 logger.info(f"{model_name} fold {i} iteration: {model.best_iteration_}")
-                best_iters[model_name].append(model.best_iteration_)
+                best_iters[model_name].append(
+                    int(model.best_iteration_ * df.shape[0] / train.shape[0])
+                )
             else:
                 model.fit(
                     X_train,
@@ -73,7 +75,9 @@ def train_purged_cv_for_ensemble(
                 logger.info(
                     f"{model_name} fold {i} iteration: {model.get_best_iteration()}"
                 )
-                best_iters[model_name].append(model.get_best_iteration())
+                best_iters[model_name].append(
+                    int(model.get_best_iteration(), df.shape[0] / train.shape[0])
+                )
 
             trained_models[model_name].append(model)
             preds_dict[model_name] = model.predict(X_valid)
@@ -91,10 +95,7 @@ def train_purged_cv_for_ensemble(
         )
 
     # best_iterの結果を使うのは全データ学習時なので、回数を補正する
-    best_iters = {
-        k: int(np.mean(v)) * cfg.cv.n_splits // (cfg.cv.n_splits - 1)
-        for k, v in best_iters.items()
-    }
+    best_iters = {k: int(np.mean(v)) for k, v in best_iters.items()}
     logger.info(f"ensemble CV score: {np.mean(scores)}")
     logger.info(f"best iters: {best_iters}")
     return trained_models, best_iters
