@@ -76,7 +76,7 @@ def train_purged_cv_for_ensemble(
                     f"{model_name} fold {i} iteration: {model.get_best_iteration()}"
                 )
                 best_iters[model_name].append(
-                    int(model.get_best_iteration(), df.shape[0] / train.shape[0])
+                    int(model.get_best_iteration() * df.shape[0] / train.shape[0])
                 )
 
             trained_models[model_name].append(model)
