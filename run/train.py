@@ -31,7 +31,7 @@ logger = set_logger()
 def get_spliter(cfg: DictConfig, df: pl.DataFrame) -> Any:
     if cfg.cv.splitter == "group_k_fold":
         gkf = GroupKFold(n_splits=cfg.cv.n_splits)
-        return gkf.split(df, groups=df["stock_id"].unique(maintain_order=True))
+        return gkf.split(df, groups=df["stock_id"])
     elif cfg.cv.splitter == "time_series_split":
         tscv = TimeSeriesSplit(n_splits=cfg.cv.n_splits, gap=cfg.cv.purge_gap)
         return tscv.split(df["date_id"].unique().sort())
