@@ -10,7 +10,7 @@
 rye sync
 
 # train
-python -m run.train dir=local exp_name=exp001 model.kinds="[lgb,cbt]" version=v1
+python -m run.train dir=local exp_name=exp001 model.kinds="[lgb,cbt]" version=v1 cv.splitter=k_fold
 # simple train
 python -m run.train dir=local exp_name=exp001 whole_training=false version=v1
 
