@@ -12,10 +12,7 @@ from omegaconf import DictConfig
 def load_models(cfg: DictConfig) -> Dict:
     all_models = {}
     for kind in cfg.model.kinds:
-        all_models[kind] = joblib.load(Path(cfg.model.dir) / f"{kind}_cv_models.joblib")
-        all_models[kind].append(
-            joblib.load(Path(cfg.model.dir) / f"{kind}_models.joblib")
-        )
+        all_models[kind] = joblib.load(Path(cfg.model.dir) / f"{kind}_models.joblib")
     return all_models
 
 
@@ -54,8 +51,7 @@ def prepare_data(
 def ensemble_prediction(cfg: DictConfig, df: pl.DataFrame, models: List) -> np.ndarray:
     preds = []
     for kind in cfg.model.kinds:
-        for i in range(cfg.model.n_splits + 1):
-            preds.append(models[kind][i].predict(df.to_pandas()))
+        preds.append(models[kind].predict(df.to_pandas()))
     return np.mean(preds, 0)
 
 
