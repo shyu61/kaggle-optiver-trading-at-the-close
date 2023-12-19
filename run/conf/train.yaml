@@ -16,6 +16,7 @@ version: v1
 exp_name: exp001
 env: local
 cv:
+  splitter: k_fold
   n_splits: 5
   purge_gap: 5
 model:
