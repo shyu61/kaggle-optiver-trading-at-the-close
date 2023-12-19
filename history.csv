@@ -51,3 +51,8 @@ exp049,paperspace,6.470474226115153,,5.3981,time_series_split,same with exp032
 exp050,local,6.458371589095141,,,time_series_split,update public notebook
 exp051,,,,5.6159,time_series_split,"same with exp032, disable cv ensemble"
 exp052,,,,5.3953,time_series_split,"update public notebook, disable cv ensemble"
+exp053,local,6.46412091218703,,5.3976,time_series_split,"add cache, v1"
+exp054,local,6.252124747719657,,5.4016,KFold (about date_id),"add cache, v1"
+exp055,local,6.2652840625327455,,5.3977,GroupKFold (about stock_id),"add cache, v1"
+exp056,local,,,,GroupKFold (about stock_id),"add cache, v2"
+,,,,,,
