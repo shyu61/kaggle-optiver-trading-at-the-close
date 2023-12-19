@@ -127,7 +127,13 @@ def train_whole_dataset(
     best_iters: Dict[str, Any],
 ) -> Dict[str, Any]:
     trained_models = {}
-    X_train, y_train = df.drop("target").to_pandas(), df["target"].to_pandas()
+    if cfg.cv.splitter == "group_k_fold":
+        X_train, y_train = (
+            df.drop("stock_id", "target").to_pandas(),
+            df["target"].to_pandas(),
+        )
+    else:
+        X_train, y_train = df.drop("target").to_pandas(), df["target"].to_pandas()
 
     for model_name in tqdm(model_names, total=len(model_names)):
         model = init_model(cfg, model_name, {"n_estimators": best_iters[model_name]})
