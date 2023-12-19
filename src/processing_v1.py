@@ -1,7 +1,7 @@
 from itertools import combinations
 
-import polars as pl
 import numpy as np
+import polars as pl
 
 # import talib
 
@@ -283,7 +283,7 @@ def __add_stock_unit(df: pl.DataFrame) -> pl.DataFrame:
 #     )
 
 
-def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
+def feature_engineering(df: pl.DataFrame, keep_stock_id: bool = False) -> pl.DataFrame:
     df = __add_index_wap(df)
     df = __add_rolling(df)
     # df = __add_talib_feats(df)
@@ -298,4 +298,6 @@ def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
     df = __add_time(df)
     df = __add_stock_unit(df)
 
-    return df.drop("stock_id", "row_id")
+    if not keep_stock_id:
+        df = df.drop("stock_id")
+    return df.drop("row_id")

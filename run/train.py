@@ -56,7 +56,10 @@ def train_purged_cv_for_ensemble(
         tqdm(get_spliter(cfg, df), total=cfg.cv.n_splits)
     ):
         if cfg.cv.splitter == "group_k_fold":
-            train, valid = df[train_idx], df[valid_idx]
+            train, valid = (
+                df.drop("stock_id")[train_idx],
+                df.drop("stock_id")[valid_idx],
+            )
         else:
             train = df.filter(pl.col("date_id").is_in(train_idx))
             valid = df.filter(pl.col("date_id").is_in(valid_idx))
@@ -202,7 +205,7 @@ def main(cfg: DictConfig):
 
     df = pl.read_csv(Path(cfg.dir.input) / "train.csv")
     df = preprocessing(df)
-    df = feature_engineering(df)
+    df = feature_engineering(df, keep_stock_id=(cfg.cv.splitter == "group_k_fold"))
 
     model_names = []
     for model_name in cfg.model.kinds:
