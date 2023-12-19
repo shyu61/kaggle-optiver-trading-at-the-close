@@ -49,5 +49,5 @@ exp047,local,6.468885945513435,,,time_series_split,same with exp032
 exp048,paperspace,6.463139699388044,,5.5957,time_series_split,update public notebook
 exp049,paperspace,6.470474226115153,,5.3981,time_series_split,same with exp032
 exp050,local,6.458371589095141,,,time_series_split,update public notebook
-exp051,,,,,,
-,,,,,,
+exp051,,,,5.6159,time_series_split,"same with exp032, disable cv ensemble"
+exp052,,,,5.3953,time_series_split,"update public notebook, disable cv ensemble"
