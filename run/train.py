@@ -12,7 +12,7 @@ import polars as pl
 import xgboost as xgb
 from omegaconf import DictConfig
 from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import TimeSeriesSplit
+from sklearn.model_selection import KFold
 from tqdm import tqdm
 
 
@@ -38,9 +38,9 @@ def train_purged_cv_for_ensemble(
         trained_models[model_name] = []
         best_iters[model_name] = []
 
-    tscv = TimeSeriesSplit(n_splits=cfg.cv.n_splits, gap=cfg.cv.purge_gap)
+    kf = KFold(n_splits=cfg.cv.n_splits)
     for i, (train_idx, valid_idx) in enumerate(
-        tqdm(tscv.split(df["date_id"].unique().sort()), total=cfg.cv.n_splits)
+        tqdm(kf.split(df["date_id"].unique().sort()), total=cfg.cv.n_splits)
     ):
         train = df.filter(pl.col("date_id").is_in(train_idx))
         valid = df.filter(pl.col("date_id").is_in(valid_idx))
