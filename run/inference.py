@@ -1,9 +1,10 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import hydra
 import joblib
 import numpy as np
+import pandas as pd
 import polars as pl
 from omegaconf import DictConfig
 
@@ -18,7 +19,7 @@ def load_models(cfg: DictConfig) -> Dict:
     return all_models
 
 
-def add_time_id(df: pl.DataFrame) -> pl.DataFrame:
+def __add_time_id(df: pl.DataFrame) -> pl.DataFrame:
     tmp = (
         df.group_by("date_id", "seconds_in_bucket")
         .agg(pl.lit(0).alias("dummy"))
@@ -31,11 +32,45 @@ def add_time_id(df: pl.DataFrame) -> pl.DataFrame:
     return df.join(tmp, on=["date_id", "seconds_in_bucket"])
 
 
-def calibrate(size: int):
+def prepare_data(
+    test: pd.DataFrame, cache: pd.DataFrame, feature_engineering, preprocessing
+) -> pl.DataFrame:
+    cache = pd.concat([cache, test], ignore_index=True, axis=0)
+    cache = (
+        cache.groupby("stock_id")
+        .tail(21)
+        .sort_values(by=["date_id", "seconds_in_bucket", "stock_id"])
+        .reset_index(drop=True)
+    )
+    df = pl.DataFrame(cache)
+    df = __add_time_id(df)
+    if "currently_scored" in df.columns:
+        df = df.drop("currently_scored")
+    df = preprocessing(df)
+    df = feature_engineering(df)
+    return df[-len(test):]
+
+
+def __calibrate(size: int):
     sum = 0
     for i in range(size):
         sum += 1 / (2 ** (size - i))
     return 1 / sum
+
+
+def ensemble_prediction(cfg: DictConfig, df: pl.DataFrame, models: List) -> np.ndarray:
+    all_models_preds = []
+    for kind in cfg.model.kinds:
+        preds = np.zeros(len(df))
+        for i in range(cfg.model.n_splits + 1):
+            pred = models[kind][i].predict(df.to_pandas())
+            preds += pred / (
+                2 ** (cfg.model.n_splits + 1 - i)
+            )  # 1/64, 1/32, 1/16, 1/8, 1/4, 1/2
+        preds *= __calibrate(cfg.model.n_splits + 1)
+        all_models_preds.append(preds)
+
+    return np.mean(all_models_preds, 0)
 
 
 @hydra.main(config_path="conf", config_name="inference", version_base=None)
@@ -54,25 +89,11 @@ def main(cfg: DictConfig):
     env = optiver2023.make_env()
     iter_test = env.iter_test()
 
-    for test, revealed_targets, sample_prediction in iter_test:
-        df = pl.DataFrame(test)
-        df = add_time_id(df)
-        if "currently_scored" in df.columns:
-            df = df.drop("currently_scored")
-        df = preprocessing(df)
-        df = feature_engineering(df)
+    cache = pd.DataFrame()
 
-        all_models_preds = []
-        for kind in cfg.model.kinds:
-            preds = np.zeros(len(df))
-            for i in range(cfg.model.n_splits + 1):
-                pred = models[kind][i].predict(df.to_pandas())
-                preds += pred / (
-                    2 ** (cfg.model.n_splits + 1 - i)
-                )  # 1/64, 1/32, 1/16, 1/8, 1/4, 1/2
-            preds *= calibrate(cfg.model.n_splits + 1)
-            all_models_preds.append(preds)
-        sample_prediction["target"] = np.mean(all_models_preds, 0)
+    for test, revealed_targets, sample_prediction in iter_test:
+        df = prepare_data(test, cache, feature_engineering, preprocessing)
+        sample_prediction["target"] = ensemble_prediction(cfg, df, models)
         env.predict(sample_prediction)
 
 
