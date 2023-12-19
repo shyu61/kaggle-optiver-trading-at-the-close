@@ -12,7 +12,7 @@ import polars as pl
 import xgboost as xgb
 from omegaconf import DictConfig
 from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import TimeSeriesSplit
+from sklearn.model_selection import GroupKFold, KFold, TimeSeriesSplit
 from tqdm import tqdm
 
 
@@ -28,6 +28,20 @@ def set_logger():
 logger = set_logger()
 
 
+def get_spliter(cfg: DictConfig, df: pl.DataFrame) -> Any:
+    if cfg.cv.splitter == "group_k_fold":
+        gkf = GroupKFold(n_splits=cfg.cv.n_splits)
+        return gkf.split(df, groups=df["stock_id"])
+    elif cfg.cv.splitter == "time_series_split":
+        tscv = TimeSeriesSplit(n_splits=cfg.cv.n_splits, gap=cfg.cv.purge_gap)
+        return tscv.split(df["date_id"].unique().sort())
+    elif cfg.cv.splitter == "k_fold":
+        kf = KFold(n_splits=cfg.cv.n_splits)
+        return kf.split(df["date_id"].unique().sort())
+    else:
+        raise ValueError(f"{cfg.cv.splitter} is not supported.")
+
+
 def train_purged_cv_for_ensemble(
     cfg: DictConfig,
     df: pl.DataFrame,
@@ -38,12 +52,17 @@ def train_purged_cv_for_ensemble(
         trained_models[model_name] = []
         best_iters[model_name] = []
 
-    tscv = TimeSeriesSplit(n_splits=cfg.cv.n_splits, gap=cfg.cv.purge_gap)
     for i, (train_idx, valid_idx) in enumerate(
-        tqdm(tscv.split(df["date_id"].unique().sort()), total=cfg.cv.n_splits)
+        tqdm(get_spliter(cfg, df), total=cfg.cv.n_splits)
     ):
-        train = df.filter(pl.col("date_id").is_in(train_idx))
-        valid = df.filter(pl.col("date_id").is_in(valid_idx))
+        if cfg.cv.splitter == "group_k_fold":
+            train, valid = (
+                df.drop("stock_id")[train_idx],
+                df.drop("stock_id")[valid_idx],
+            )
+        else:
+            train = df.filter(pl.col("date_id").is_in(train_idx))
+            valid = df.filter(pl.col("date_id").is_in(valid_idx))
         X_train, X_valid = (
             train.drop("target").to_pandas(),
             valid.drop("target").to_pandas(),
@@ -108,7 +127,13 @@ def train_whole_dataset(
     best_iters: Dict[str, Any],
 ) -> Dict[str, Any]:
     trained_models = {}
-    X_train, y_train = df.drop("target").to_pandas(), df["target"].to_pandas()
+    if cfg.cv.splitter == "group_k_fold":
+        X_train, y_train = (
+            df.drop("stock_id", "target").to_pandas(),
+            df["target"].to_pandas(),
+        )
+    else:
+        X_train, y_train = df.drop("target").to_pandas(), df["target"].to_pandas()
 
     for model_name in tqdm(model_names, total=len(model_names)):
         model = init_model(cfg, model_name, {"n_estimators": best_iters[model_name]})
@@ -186,7 +211,7 @@ def main(cfg: DictConfig):
 
     df = pl.read_csv(Path(cfg.dir.input) / "train.csv")
     df = preprocessing(df)
-    df = feature_engineering(df)
+    df = feature_engineering(df, keep_stock_id=(cfg.cv.splitter == "group_k_fold"))
 
     model_names = []
     for model_name in cfg.model.kinds:

@@ -324,7 +324,7 @@ def __add_stock_unit(df: pl.DataFrame) -> pl.DataFrame:
 #     )
 
 
-def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
+def feature_engineering(df: pl.DataFrame, keep_stock_id: bool = False) -> pl.DataFrame:
     df = __add_imbalance(df)
     df = __add_pressure(df)
     df = __add_statistic_agg(df)
@@ -345,4 +345,6 @@ def feature_engineering(df: pl.DataFrame) -> pl.DataFrame:
             .alias(col)
         )
 
-    return df.drop("stock_id", "row_id")
+    if not keep_stock_id:
+        df = df.drop("stock_id")
+    return df.drop("row_id")

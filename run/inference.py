@@ -51,26 +51,12 @@ def prepare_data(
     return df[-len(test):]
 
 
-def __calibrate(size: int):
-    sum = 0
-    for i in range(size):
-        sum += 1 / (2 ** (size - i))
-    return 1 / sum
-
-
 def ensemble_prediction(cfg: DictConfig, df: pl.DataFrame, models: List) -> np.ndarray:
-    all_models_preds = []
+    preds = []
     for kind in cfg.model.kinds:
-        preds = np.zeros(len(df))
         for i in range(cfg.model.n_splits + 1):
-            pred = models[kind][i].predict(df.to_pandas())
-            preds += pred / (
-                2 ** (cfg.model.n_splits + 1 - i)
-            )  # 1/64, 1/32, 1/16, 1/8, 1/4, 1/2
-        preds *= __calibrate(cfg.model.n_splits + 1)
-        all_models_preds.append(preds)
-
-    return np.mean(all_models_preds, 0)
+            preds.append(models[kind][i].predict(df.to_pandas()))
+    return np.mean(preds, 0)
 
 
 @hydra.main(config_path="conf", config_name="inference", version_base=None)
