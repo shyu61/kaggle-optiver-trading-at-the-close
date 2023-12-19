@@ -10,9 +10,9 @@
 rye sync
 
 # train
-python -m run.train dir=local exp_name=exp001 version=v1
+python -m run.train dir=local exp_name=exp001 model.kinds="[lgb,cbt]" version=v1
 # simple train
-python -m run.train dir=local exp_name=exp030 whole_training=false version=v1
+python -m run.train dir=local exp_name=exp001 whole_training=false version=v1
 
 # inference
 python -m run.inference env=dev dir=local exp_name=exp001 version=v1
