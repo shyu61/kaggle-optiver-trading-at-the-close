@@ -77,6 +77,7 @@ def main(cfg: DictConfig):
 
     cache = pd.DataFrame()
 
+    # TODO: add cache for time_series feature engineering. e.g. lag features
     for test, revealed_targets, sample_prediction in iter_test:
         df = prepare_data(test, cache, feature_engineering, preprocessing)
         sample_prediction["target"] = ensemble_prediction(cfg, df, models)
