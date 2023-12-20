@@ -54,5 +54,5 @@ exp052,,,,5.3953,time_series_split,"update public notebook, disable cv ensemble"
 exp053,local,6.46412091218703,,5.3976,time_series_split,"add cache, v1"
 exp054,local,6.252124747719657,,5.4016,KFold (about date_id),"add cache, v1"
 exp055,local,6.2652840625327455,,5.3977,GroupKFold (about stock_id),"add cache, v1"
-exp056,local,,,,GroupKFold (about stock_id),"add cache, v2"
-,,,,,,
+exp056,local,,,5.419,KFold (about date_id),"exp054, disable cv ensemble"
+exp057,local,,,5.4055,GroupKFold (about stock_id),"exp055, disable cv ensemble"
